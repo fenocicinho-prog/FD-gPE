@@ -286,6 +286,12 @@ void MainComponent::resized()
     overlay.setBounds (ruler.getX(), ruler.getY(), area.getRight() - ruler.getX(), area.getBottom() - ruler.getY());
     overlay.toFront (false);
 
+    if (stepPanel != nullptr && stepPanel->isVisible())
+    {
+        const int w = juce::jmax (240, juce::jmin (480, viewport.getWidth() - 8));
+        stepPanel->setBounds (viewport.getRight() - w - 8, viewport.getBottom() - 248, w, 240);
+    }
+
     layoutRows();
 }
 
@@ -843,6 +849,8 @@ void MainComponent::showProjectMenu()
     menu.addSeparator();
     menu.addItem (6, tr ("Exporter le mixage en WAV…"));
     menu.addItem (7, tr ("Exporter avec options…"));
+    menu.addSeparator();
+    menu.addItem (8, tr ("Séquenceur de pas…"));
 
     switch (menu.showAt (&projectButton, 0, projectButton.getHeight()))
     {
@@ -853,6 +861,7 @@ void MainComponent::showProjectMenu()
         case 5: duplicateTrack();      break;
         case 6: exportProject();       break;
         case 7: exportProjectAdvanced(); break;
+        case 8: showStepSequencer();     break;
         default: break;
     }
 }
@@ -1124,6 +1133,27 @@ void MainComponent::showPluginEditor (te::Plugin& plugin)
     window->centreWithSize (w, h);
 }
 
+void MainComponent::showStepSequencer()
+{
+    if (stepPanel == nullptr)
+    {
+        stepPanel = std::make_unique<StepSequencerPanel> (host);
+        stepPanel->onClose = [this] { stepPanel->setVisible (false); };
+        stepPanel->onStructureChanged = [this]
+        {
+            rebuildRows();
+            viewChanged();
+        };
+        addAndMakeVisible (stepPanel.get());
+    }
+
+    stepPanel->rebuildPatternFromClip();
+    stepPanel->setVisible (true);
+    stepPanel->toFront (false);
+    resized();
+    transport.setStatus (tr ("Séquenceur : cliquez les pads, puis LECTURE pour entendre le motif."));
+}
+
 void MainComponent::exportProject()
 {
     juce::FileChooser chooser (tr ("Exporter le mixage en WAV"),
@@ -1253,6 +1283,9 @@ void MainComponent::addMarker()
 void MainComponent::timerCallback()
 {
     ++tick;
+
+    if (stepPanel != nullptr && stepPanel->isVisible())
+        stepPanel->updatePlayhead();
 
     releaseHeldKeys();
 

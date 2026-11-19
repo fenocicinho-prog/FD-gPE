@@ -82,7 +82,10 @@ fenêtre est maintenant créée avec `create()` puis rendue visible : elle est n
       après Ctrl+Z/Ctrl+Y. **Validée par l'utilisateur le 19/11.** Risque résiduel connu : le bouton
       **ANNULER** de la TransportBar annule sans rafraîchir le piano roll ouvert.*
 - [ ] **M2.5 Séquenceur de pas** : grille de 16 pas avec pads, pour les beats. *Critère* : on fait un beat de
-      batterie en cliquant les pas.
+      batterie en cliquant les pas. *Code terminé le 19/11* (`StepSequencerPanel.h` : 6 instruments × 16 pas,
+      notes MIDI dans un clip d'une mesure sur la piste « Batterie », créée au premier clic). Test logique
+      pas/temps, `verifier.sh`, `build_local.sh` et sonde premier clic OK ; en attente de validation
+      utilisateur du son et du rendu. Limite connue : la grille déborde sous 480 px de large.
 - [ ] **M2.6 Sampler** : charger des WAV sur des pads, kits de batterie. *Critère* : on joue et on séquence ses
       propres sons.
 - [ ] **M2.7 Thèmes de couleurs** : `Palette` devient un thème modifiable (sombre, clair, choix de la couleur

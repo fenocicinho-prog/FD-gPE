@@ -273,6 +273,7 @@ d'enregistrement, quand tu ajoutes ou supprimes une piste, et à la fermeture.
 | Ajouter un clip MIDI | Double-clic dans une piste MIDI, ou clic droit → **Nouveau clip MIDI ici** |
 | Couleur d'une piste | Clic droit sur la piste → **Changer la couleur…** |
 | Déplacer / redimensionner un clip | Glisser le clip ; saisir son bord droit pour changer sa durée |
+|Faire un beat de batterie|**PROJET… → Séquenceur de pas…** : cliquez les pads (6 instruments × 16 pas) ; la piste « Batterie » et son clip d'une mesure sont créés au premier clic. **LECTURE** écoute le motif, **EFFACER** vide la grille, **FERMER** replie le panneau|
 |Éditer des notes MIDI|Double-clic sur un clip MIDI, ou **MENU → Piano roll** : l'éditeur s'ouvre intégré au niveau de la piste ; **FERMER** pour le replier|
 |Jouer une note MIDI|Bouton **CLAVIER** de la piste MIDI, ou touches de l'ordinateur : la note part vers la piste MIDI sélectionnée|
 |Revenir en arrière dans le temps|Faire défiler avec la molette sur la règle, ou cliquer sur la règle pour recentrer la tête de lecture|

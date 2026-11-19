@@ -11,6 +11,7 @@
 #include "TimelineModel.h"
 #include "MidiKeyboardPanel.h"
 #include "PianoRollEditor.h"
+#include "StepSequencerPanel.h"
 #include "TimelineRuler.h"
 #include "TrackRow.h"
 #include "TransportBar.h"
@@ -60,6 +61,7 @@ private:
     void exportProjectAdvanced();
     void addMarker();
     void showPluginEditor (te::Plugin&);
+    void showStepSequencer();
     void handleNoteKey (const juce::KeyPress&, bool down);
     void releaseHeldKeys();
     bool trackStillExists (te::AudioTrack*);
@@ -82,6 +84,7 @@ private:
     std::unique_ptr<juce::DialogWindow> audioSettingsWindow;
     std::unique_ptr<juce::DialogWindow> keyboardWindow;
     std::unique_ptr<PianoRollEditor> inlinePianoRoll;
+    std::unique_ptr<StepSequencerPanel> stepPanel;
     std::vector<int> activeNoteKeys;
     std::unordered_map<int, te::AudioTrack*> activeNoteTracks;   // code touche → piste qui a reçu la note
     int tick = 0;
