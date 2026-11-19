@@ -35,6 +35,9 @@ public:
     /** Pose cette propriété sur un bouton pour lui donner un témoin lumineux. */
     static void setLed (juce::Button&, juce::Colour ledColour);
 
+    /** Force la taille de police d'un bouton (par exemple le bouton « + »). */
+    static void setFontSize (juce::Button&, float size);
+
     /** Dessine une tuile (fond clair, bordure, ombre) utilisée par le navigateur de plugins. */
     static void drawTile (juce::Graphics&, juce::Rectangle<float>, bool selected, bool hovered);
 

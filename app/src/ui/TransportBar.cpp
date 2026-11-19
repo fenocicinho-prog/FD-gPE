@@ -8,6 +8,12 @@ namespace fdgpe
 {
 namespace
 {
+    // Hauteur des deux rangées de la barre. 44 px garde des cibles confortables
+    // au clic et au clavier.
+    constexpr int barPadding  = 8;
+    constexpr int rowHeight   = 44;
+    constexpr int rowGap      = 2;
+
     juce::String formatTime (double seconds)
     {
         const auto millis = juce::roundToInt (juce::jmax (0.0, seconds) * 1000.0);
@@ -45,16 +51,14 @@ TransportBar::TransportBar (EngineHost& h, Callbacks cb)
     setupButton (prevMarkerButton, "<M");
     setupButton (addMarkerButton, tr ("+ MARQUEUR"));
     setupButton (nextMarkerButton, "M>");
-    setupButton (pluginsButton, tr ("PLUGINS"));
-    setupButton (pianoButton, tr ("PIANO ROLL"));
-    setupButton (tempoButton, tr ("TEMPO"));
-    setupButton (exportButton, tr ("EXPORTER"));
-    setupButton (audioButton, tr ("AUDIO"));
-    setupButton (mixerButton, tr ("MIXEUR"));
-    setupButton (snapButton, tr ("SNAP 1/4"));
+    setupButton (menuButton, tr ("MENU"));
+    setupButton (libraryButton, tr ("BIBLIOTHÈQUE"));
     setupButton (projectButton, tr ("PROJET"));
     setupButton (tempoDownButton, "-");
     setupButton (tempoUpButton, "+");
+
+    menuButton.setTooltip (tr ("Outils : bibliothèque, piano roll, tempo, export, audio, mixeur, magnétisme."));
+    libraryButton.setTooltip (tr ("Ouvrir la bibliothèque de plugins."));
 
     returnButton.onClick = [this] { host.returnToStart(); };
     playButton.onClick   = [this] { host.togglePlay(); refresh(); };
@@ -77,24 +81,19 @@ TransportBar::TransportBar (EngineHost& h, Callbacks cb)
     addMarkerButton.onClick   = [this] { if (callbacks.addMarker) callbacks.addMarker(); };
     nextMarkerButton.onClick  = [this] { if (callbacks.nextMarker) callbacks.nextMarker(); };
 
-    pluginsButton.onClick = [this] { if (callbacks.pluginBrowser) callbacks.pluginBrowser(); };
-    pianoButton.onClick   = [this] { if (callbacks.pianoRoll) callbacks.pianoRoll(); };
-    tempoButton.onClick   = [this] { if (callbacks.tempoMap) callbacks.tempoMap(); };
-    exportButton.onClick  = [this] { if (callbacks.exportWav) callbacks.exportWav(); };
-    audioButton.onClick   = [this] { if (callbacks.audioSettings) callbacks.audioSettings(); };
-    mixerButton.onClick   = [this] { if (callbacks.mixer) callbacks.mixer(); };
-    snapButton.onClick    = [this] { if (callbacks.cycleSnap) callbacks.cycleSnap(); };
+    menuButton.onClick    = [this] { showMenu(); };
+    libraryButton.onClick = [this] { if (callbacks.pluginBrowser) callbacks.pluginBrowser(); };
     projectButton.onClick = [this] { if (callbacks.projectMenu) callbacks.projectMenu(); };
 
     tempoDownButton.onClick = [this] { host.setTempoBpm (std::round (host.getTempoBpm()) - 1.0); refresh(); };
     tempoUpButton.onClick   = [this] { host.setTempoBpm (std::round (host.getTempoBpm()) + 1.0); refresh(); };
 
-    styleLabel (positionLabel, juce::Font (juce::FontOptions (juce::Font::getDefaultMonospacedFontName(), 24.0f, juce::Font::bold)),
+    styleLabel (positionLabel, juce::Font (juce::FontOptions (juce::Font::getDefaultSansSerifFontName(), 24.0f, juce::Font::bold)),
                 palette::text, juce::Justification::centred);
-    styleLabel (secondsLabel, juce::Font (juce::FontOptions (juce::Font::getDefaultMonospacedFontName(), 12.0f, juce::Font::plain)),
+    styleLabel (secondsLabel, juce::Font (juce::FontOptions (juce::Font::getDefaultSansSerifFontName(), 12.0f, juce::Font::plain)),
                 palette::textDim, juce::Justification::centred);
     styleLabel (tempoCaption, juce::Font (juce::FontOptions (10.0f, juce::Font::bold)), palette::textDim, juce::Justification::centred);
-    styleLabel (tempoLabel, juce::Font (juce::FontOptions (juce::Font::getDefaultMonospacedFontName(), 20.0f, juce::Font::bold)),
+    styleLabel (tempoLabel, juce::Font (juce::FontOptions (juce::Font::getDefaultSansSerifFontName(), 20.0f, juce::Font::bold)),
                 palette::text, juce::Justification::centred);
     styleLabel (sigLabel, juce::Font (juce::FontOptions (14.0f, juce::Font::bold)), palette::blue, juce::Justification::centred);
     styleLabel (cpuLabel, juce::Font (juce::FontOptions (10.5f, juce::Font::bold)), palette::textDim, juce::Justification::centredRight);
@@ -114,13 +113,12 @@ TransportBar::TransportBar (EngineHost& h, Callbacks cb)
     for (juce::Component* c : { (juce::Component*) &returnButton, (juce::Component*) &playButton, (juce::Component*) &recButton,
                                 (juce::Component*) &loopButton, (juce::Component*) &metroButton, (juce::Component*) &undoButton,
                                 (juce::Component*) &redoButton, (juce::Component*) &tapButton, (juce::Component*) &prevMarkerButton,
-                                (juce::Component*) &addMarkerButton, (juce::Component*) &nextMarkerButton, (juce::Component*) &pluginsButton,
-                                (juce::Component*) &pianoButton, (juce::Component*) &tempoButton, (juce::Component*) &exportButton,
-                                (juce::Component*) &audioButton, (juce::Component*) &mixerButton, (juce::Component*) &snapButton,
-                                (juce::Component*) &projectButton, (juce::Component*) &tempoDownButton, (juce::Component*) &tempoUpButton,
-                                (juce::Component*) &positionLabel, (juce::Component*) &secondsLabel, (juce::Component*) &tempoCaption,
-                                (juce::Component*) &tempoLabel, (juce::Component*) &sigLabel, (juce::Component*) &cpuLabel,
-                                (juce::Component*) &masterLabel, (juce::Component*) &masterSlider, (juce::Component*) &statusLabel })
+                                (juce::Component*) &addMarkerButton, (juce::Component*) &nextMarkerButton, (juce::Component*) &menuButton,
+                                (juce::Component*) &libraryButton, (juce::Component*) &projectButton, (juce::Component*) &tempoDownButton,
+                                (juce::Component*) &tempoUpButton, (juce::Component*) &positionLabel, (juce::Component*) &secondsLabel,
+                                (juce::Component*) &tempoCaption, (juce::Component*) &tempoLabel, (juce::Component*) &sigLabel,
+                                (juce::Component*) &cpuLabel, (juce::Component*) &masterLabel, (juce::Component*) &masterSlider,
+                                (juce::Component*) &statusLabel })
         addAndMakeVisible (c);
 
     loadLogo();
@@ -211,15 +209,16 @@ void TransportBar::paint (juce::Graphics& g)
 
     // séparateur entre les deux rangées
     g.setColour (palette::line);
-    g.drawHorizontalLine (getHeight() - 45, 12.0f, r.getRight() - 12.0f);
+    g.drawHorizontalLine (barPadding + rowHeight + 1, 12.0f, r.getRight() - 12.0f);
 }
 
 void TransportBar::resized()
 {
-    auto area = getLocalBounds().reduced (12, 8);
+    auto area = getLocalBounds().reduced (12, barPadding);
     const int gap = 6;
-    auto top = area.removeFromTop (42);
+    auto top = area.removeFromTop (rowHeight);
     auto bottom = area;
+    bottom.removeFromTop (rowGap);
 
     auto place = [&] (juce::Component& c, int width, juce::Rectangle<int>& row)
     {
@@ -253,28 +252,21 @@ void TransportBar::resized()
 
     cpuLabel.setBounds (top.removeFromRight (58));
     top.removeFromRight (gap);
-    place (audioButton, 90, top);
-    top.removeFromRight (gap);
     masterLabel.setBounds (top.removeFromRight (52).reduced (0, 12));
     masterSlider.setBounds (top.removeFromRight (92).reduced (0, 12));
 
     // Rangée 2 : édition et outils
     bottom.removeFromLeft (132);   // sous le logo
-    bottom.removeFromTop (4);
 
     place (undoButton, 52, bottom);
     place (redoButton, 52, bottom);
-    place (tapButton, 42, bottom);
-    place (prevMarkerButton, 30, bottom);
-    place (addMarkerButton, 72, bottom);
-    place (nextMarkerButton, 30, bottom);
-    place (pluginsButton, 76, bottom);
-    place (pianoButton, 86, bottom);
-    place (tempoButton, 66, bottom);
-    place (mixerButton, 66, bottom);
-    place (snapButton, 70, bottom);
-    place (exportButton, 78, bottom);
-    place (projectButton, 68, bottom);
+    place (tapButton, 44, bottom);
+    place (prevMarkerButton, 34, bottom);
+    place (addMarkerButton, 84, bottom);
+    place (nextMarkerButton, 34, bottom);
+    place (menuButton, 76, bottom);
+    place (libraryButton, 132, bottom);
+    place (projectButton, 76, bottom);
 
     statusLabel.setBounds (bottom.reduced (0, 4));
 }
@@ -304,8 +296,50 @@ void TransportBar::setStatus (const juce::String& message)
     statusLabel.setText (message, juce::dontSendNotification);
 }
 
-void TransportBar::setSnapLabel (const juce::String& label)
+void TransportBar::setSnapLabel (const juce::String& label, bool active)
 {
-    snapButton.setButtonText (label);
+    snapText = label;   // le libellé sert au menu « Magnétisme »
+    snapActive = active;
+}
+
+bool TransportBar::isSnapActive() const
+{
+    return snapActive;
+}
+
+void TransportBar::showMenu()
+{
+    juce::PopupMenu menu;
+    menu.addItem (1, tr ("Bibliothèque de plugins"));
+    menu.addItem (2, tr ("Piano roll"));
+    menu.addItem (3, tr ("Carte de tempo"));
+    menu.addSeparator();
+    menu.addItem (4, tr ("Export WAV"));
+    menu.addItem (5, tr ("Réglages audio"));
+    menu.addItem (6, tr ("Mixeur"));
+    menu.addSeparator();
+    menu.addItem (7, tr ("Magnétisme : ") + snapText, true, isSnapActive());
+
+    menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (menuButton),
+                        [safe = juce::Component::SafePointer<TransportBar> (this)] (int result)
+                        {
+                            if (safe != nullptr && result != 0)
+                                safe->handleMenuChoice (result);
+                        });
+}
+
+void TransportBar::handleMenuChoice (int id)
+{
+    switch (id)
+    {
+        case 1: if (callbacks.pluginBrowser) callbacks.pluginBrowser(); break;
+        case 2: if (callbacks.pianoRoll)     callbacks.pianoRoll();     break;
+        case 3: if (callbacks.tempoMap)      callbacks.tempoMap();      break;
+        case 4: if (callbacks.exportWav)     callbacks.exportWav();     break;
+        case 5: if (callbacks.audioSettings) callbacks.audioSettings(); break;
+        case 6: if (callbacks.mixer)         callbacks.mixer();         break;
+        case 7: if (callbacks.cycleSnap)     callbacks.cycleSnap();     break;
+        default: break;
+    }
 }
 } // namespace fdgpe

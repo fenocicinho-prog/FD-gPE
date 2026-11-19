@@ -187,7 +187,7 @@ MainComponent::MainComponent()
         followPlayhead = false;
         viewChanged();
     };
-    transport.setSnapLabel (tr ("SNAP 1/4"));
+    transport.setSnapLabel ("1/4", true);
 
     addAndMakeVisible (transport);
     addAndMakeVisible (ruler);
@@ -197,29 +197,31 @@ MainComponent::MainComponent()
     viewport.setScrollBarThickness (10);
     addAndMakeVisible (viewport);
 
-    addAudioButton.setButtonText (tr ("+ PISTE AUDIO"));
-    addMidiButton.setButtonText (tr ("+ PISTE MIDI"));
+    addTrackButton.setTooltip (tr ("Ajouter une piste (audio ou MIDI)"));
+    FdLookAndFeel::setFontSize (addTrackButton, 22.0f);
     projectButton.setButtonText (tr ("PROJET…"));
     projectButton.onClick = [this] { showProjectMenu(); };
 
-    addAudioButton.onClick = [this]
+    addTrackButton.onClick = [this]
     {
-        host.addAudioTrack();
-        host.saveProject();
-        rebuildRows();
-        transport.setStatus (tr ("Piste audio ajoutée."));
+        juce::PopupMenu menu;
+        menu.addItem (1, tr ("Piste audio"));
+        menu.addItem (2, tr ("Piste MIDI"));
+
+        menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (addTrackButton),
+                            [safe = juce::Component::SafePointer<MainComponent> (this)] (int result)
+                            {
+                                if (safe == nullptr)
+                                    return;
+
+                                if (result == 1)
+                                    safe->createAudioTrack();
+                                else if (result == 2)
+                                    safe->createMidiTrack();
+                            });
     };
 
-    addMidiButton.onClick = [this]
-    {
-        host.addMidiTrack();
-        host.saveProject();
-        rebuildRows();
-        transport.setStatus (tr ("Piste MIDI ajoutée."));
-    };
-
-    addAndMakeVisible (addAudioButton);
-    addAndMakeVisible (addMidiButton);
+    addAndMakeVisible (addTrackButton);
     addAndMakeVisible (projectButton);
 
     addAndMakeVisible (overlay);
@@ -269,12 +271,11 @@ void MainComponent::resized()
 {
     auto area = getLocalBounds().reduced (1);
 
-    transport.setBounds (area.removeFromTop (96));
+    transport.setBounds (area.removeFromTop (108));
 
     auto addBar = area.removeFromBottom (52);
-    addAudioButton.setBounds (addBar.removeFromLeft (170).reduced (8, 6));
-    addMidiButton.setBounds (addBar.removeFromLeft (170).reduced (8, 6));
-    projectButton.setBounds (addBar.removeFromLeft (130).reduced (8, 6));
+    addTrackButton.setBounds (addBar.removeFromLeft (68).reduced (8, 4));
+    projectButton.setBounds (addBar.removeFromLeft (130).reduced (8, 4));
 
     auto rulerRow = area.removeFromTop (30);
     rulerRow.removeFromLeft (TrackRow::headerWidth);
@@ -406,7 +407,7 @@ bool MainComponent::keyPressed (const juce::KeyPress& key)
                 addMarker();
                 return true;
             case 'N':
-                addMidiButton.triggerClick();
+                createMidiTrack();
                 return true;
             default:
                 break;
@@ -719,6 +720,22 @@ void MainComponent::startRecording()
     transport.setStatus (tr ("Enregistrement en cours..."));
 }
 
+void MainComponent::createAudioTrack()
+{
+    host.addAudioTrack();
+    host.saveProject();
+    rebuildRows();
+    transport.setStatus (tr ("Piste audio ajoutée."));
+}
+
+void MainComponent::createMidiTrack()
+{
+    host.addMidiTrack();
+    host.saveProject();
+    rebuildRows();
+    transport.setStatus (tr ("Piste MIDI ajoutée."));
+}
+
 void MainComponent::removeTrack (te::AudioTrack& track)
 {
     auto* trackPtr = &track;
@@ -788,7 +805,7 @@ void MainComponent::showMixer()
 void MainComponent::cycleSnap()
 {
     static const double values[] = { 0.0, 0.25, 0.5, 1.0, 2.0, 4.0 };
-    static const char* labels[] = { "SNAP OFF", "1/16", "1/8", "1/4", "1/2", "1 BAR" };
+    static const char* labels[] = { "OFF", "1/16", "1/8", "1/4", "1/2", "1 MESURE" };
 
     int index = 0;
 
@@ -798,8 +815,8 @@ void MainComponent::cycleSnap()
 
     index = (index + 1) % 6;
     model.snapBeats = values[index];
-    transport.setSnapLabel (juce::String (labels[index]));
-    transport.setStatus (tr ("Magnétisme : ") + juce::String (labels[index]));
+    transport.setSnapLabel (tr (labels[index]), values[index] > 0.0);
+    transport.setStatus (tr ("Magnétisme : ") + tr (labels[index]));
 }
 
 //==============================================================================
@@ -964,7 +981,7 @@ void MainComponent::openPianoRoll()
         juce::AlertWindow::showMessageBoxAsync (
             juce::MessageBoxIconType::InfoIcon,
             tr ("Aucune piste MIDI"),
-            tr ("Ajoutez d'abord une piste MIDI avec le bouton « + PISTE MIDI »."));
+            tr ("Ajoutez d'abord une piste MIDI avec le bouton « + »."));
         return;
     }
 

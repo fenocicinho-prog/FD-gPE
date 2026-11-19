@@ -10,7 +10,7 @@ TempoRow::TempoRow (EngineHost& h, const TempoPoint& p, std::function<void()> ch
     : host (h), point (p), changed (std::move (change))
 {
     beatLabel.setText (juce::String (point.beat, 2), juce::dontSendNotification);
-    beatLabel.setFont (juce::Font (juce::FontOptions (juce::Font::getDefaultMonospacedFontName(), 13.0f, juce::Font::bold)));
+    beatLabel.setFont (juce::Font (juce::FontOptions (juce::Font::getDefaultSansSerifFontName(), 13.0f, juce::Font::bold)));
     beatLabel.setColour (juce::Label::textColourId, palette::blue);
     beatLabel.setJustificationType (juce::Justification::centred);
 

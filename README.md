@@ -264,27 +264,27 @@ d'enregistrement, quand tu ajoutes ou supprimes une piste, et à la fermeture.
 | Zoom / défilement | Ctrl + molette = zoom ; Maj + molette = défilement horizontal |
 | Renommer une piste | Double-clic sur son nom |
 | Remettre un curseur à zéro | Double-clic sur VOL ou PAN |
-| Ajouter / supprimer une piste | **+ PISTE AUDIO**, **+ PISTE MIDI**, bouton **X** |
+| Ajouter / supprimer une piste | Bouton **+** (menu **Piste audio** / **Piste MIDI**), bouton **X** |
 | Nouveau / ouvrir / enregistrer sous | Bouton **PROJET…**, ou **Ctrl+N** / **Ctrl+O** / **Ctrl+Maj+S** |
 | Importer un fichier audio | **PROJET… → Importer**, **Ctrl+I**, ou clic droit sur une piste |
 | Dupliquer une piste | **PROJET… → Dupliquer**, **Ctrl+D**, ou clic droit sur une piste |
-| Ouvrir le mixeur vertical | Bouton **MIXEUR** (VOL, PAN, MUTE par piste) |
-| Changer le magnétisme | Bouton **SNAP** : OFF, 1/16, 1/8, 1/4, 1/2, 1 mesure |
+| Ouvrir le mixeur vertical | **MENU → Mixeur** (VOL, PAN, MUTE par piste) |
+| Changer le magnétisme | **MENU → Magnétisme** : OFF, 1/16, 1/8, 1/4, 1/2, 1 mesure |
 | Ajouter un clip MIDI | Double-clic dans une piste MIDI, ou clic droit → **Nouveau clip MIDI ici** |
 | Couleur d'une piste | Clic droit sur la piste → **Changer la couleur…** |
 | Déplacer / redimensionner un clip | Glisser le clip ; saisir son bord droit pour changer sa durée |
-|Éditer des notes MIDI|Double-clic sur un clip MIDI, ou bouton **PIANO ROLL** : l'éditeur s'ouvre intégré au niveau de la piste ; **FERMER** pour le replier|
+|Éditer des notes MIDI|Double-clic sur un clip MIDI, ou **MENU → Piano roll** : l'éditeur s'ouvre intégré au niveau de la piste ; **FERMER** pour le replier|
 |Jouer une note MIDI|Bouton **CLAVIER** de la piste MIDI, ou touches de l'ordinateur : la note part vers la piste MIDI sélectionnée|
 |Revenir en arrière dans le temps|Faire défiler avec la molette sur la règle, ou cliquer sur la règle pour recentrer la tête de lecture|
-|Créer un clip MIDI vide|**PIANO ROLL** sans clip sélectionné : un clip de 4 mesures est créé à la tête de lecture sur la première piste MIDI|
-|Gérer le tempo et les signatures|**TEMPO** : carte de tempo, ajout/suppression de points, 4/4, 3/4, 6/8, etc.|
+|Créer un clip MIDI vide|**MENU → Piano roll** sans clip sélectionné : un clip de 4 mesures est créé à la tête de lecture sur la première piste MIDI|
+|Gérer le tempo et les signatures|**MENU → Carte de tempo** : ajout/suppression de points, 4/4, 3/4, 6/8, etc.|
 |Ajouter un marqueur|**+ MARQUEUR**, ou touche **M**|
 |Aller au marqueur suivant / précédent|**M>** / **<M**|
-|Ouvrir le navigateur de plugins|**PLUGINS**, touche **P**, ou tuile **+** sur une piste|
+|Ouvrir le navigateur de plugins|**BIBLIOTHÈQUE**, **MENU → Bibliothèque de plugins**, touche **P**, ou tuile **+** sur une piste|
 |Éditer / activer / retirer un plugin|Tuile du plugin dans l'en-tête de piste : clic = éditeur, point = ON/OFF, **x** = retrait|
 |Couper / dupliquer / supprimer un clip|Clic droit sur le clip ; ou touche **S** (coupe à la tête de lecture), **Suppr**, **Ctrl+D**|
 |Copier / coller un clip|**Ctrl+C** puis **Ctrl+V** : collage à la tête de lecture sur la piste sélectionnée|
-|Exporter le mixage|**EXPORTER WAV**, ou **Ctrl+E**|
+|Exporter le mixage|**MENU → Export WAV**, ou **Ctrl+E**|
 |Annuler / rétablir|**ANNULER** / **RÉTABLIR**, **Ctrl+Z** / **Ctrl+Maj+Z** / **Ctrl+Y**|
 |Enregistrer le projet|**Ctrl+S** (également automatique après ajout/suppression de piste ou de clip)|
 
@@ -302,7 +302,7 @@ la piste armée ; le clip définitif apparaît quand tu arrêtes.
 
 ### Plugins
 
-Le navigateur **PLUGINS** affiche les plugins intégrés Tracktion et les VST3 scannés.
+La bibliothèque (**BIBLIOTHÈQUE**) affiche les plugins intégrés Tracktion et les VST3 scannés.
 Le scan VST3 se lance depuis le bouton **SCAN** ; le bouton **DOSSIER** ajoute un chemin
 supplémentaire. Les tuiles sont classées par Instruments / Effets / Externes, avec recherche.
 Un clic sur **+** ajoute le plugin à la piste choisie.

@@ -5,6 +5,7 @@ namespace fdgpe
 namespace
 {
     const juce::Identifier ledId { "fdLed" };
+    const juce::Identifier fontSizeId { "fdFontSize" };
 }
 
 FdLookAndFeel::FdLookAndFeel()
@@ -78,6 +79,11 @@ FdLookAndFeel::FdLookAndFeel()
 void FdLookAndFeel::setLed (juce::Button& button, juce::Colour ledColour)
 {
     button.getProperties().set (ledId, (juce::int64) ledColour.getARGB());
+}
+
+void FdLookAndFeel::setFontSize (juce::Button& button, float size)
+{
+    button.getProperties().set (fontSizeId, (double) size);
 }
 
 bool FdLookAndFeel::hasLed (const juce::Button& button)
@@ -174,8 +180,14 @@ void FdLookAndFeel::drawButtonBackground (juce::Graphics& g, juce::Button& butto
                  getLedColour (button), on);
 }
 
-juce::Font FdLookAndFeel::getTextButtonFont (juce::TextButton&, int buttonHeight)
+juce::Font FdLookAndFeel::getTextButtonFont (juce::TextButton& button, int buttonHeight)
 {
+    // Un bouton peut imposer sa taille (voir setFontSize) : utile pour le « + ».
+    const auto custom = (float) (double) button.getProperties().getWithDefault (fontSizeId, 0.0);
+
+    if (custom > 0.0f)
+        return juce::Font (juce::FontOptions (custom, juce::Font::bold));
+
     return juce::Font (juce::FontOptions (juce::jlimit (10.0f, 14.5f, (float) buttonHeight * 0.36f), juce::Font::bold));
 }
 

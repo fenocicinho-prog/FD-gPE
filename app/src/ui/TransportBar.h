@@ -8,9 +8,11 @@
 
 namespace fdgpe
 {
-/** Barre du haut : logo (chargé depuisFD-gPE/logo.png si présent), transport,
-    tempo, signature, marqueurs, undo/redo et accès aux outils (plugins, piano
-    roll, carte de tempo, export). */
+/** Barre du haut : logo (chargé depuis FD-gPE/logo.png si présent), transport,
+    tempo, signature, marqueurs et undo/redo. Les outils (bibliothèque de
+    plugins, piano roll, carte de tempo, export, réglages audio, mixeur,
+    magnétisme) sont regroupés dans un menu unique, avec un accès direct à la
+    bibliothèque de plugins. */
 class TransportBar final : public juce::Component
 {
 public:
@@ -37,10 +39,13 @@ public:
 
     void refresh();
     void setStatus (const juce::String&);
-    void setSnapLabel (const juce::String&);
+    void setSnapLabel (const juce::String&, bool active);
 
 private:
     void loadLogo();
+    void showMenu();
+    void handleMenuChoice (int id);
+    bool isSnapActive() const;
 
     EngineHost& host;
     Callbacks callbacks;
@@ -48,14 +53,15 @@ private:
     juce::TextButton returnButton, playButton, recButton, loopButton, metroButton,
                       undoButton, redoButton, tapButton,
                       prevMarkerButton, addMarkerButton, nextMarkerButton,
-                      pluginsButton, pianoButton, tempoButton, exportButton, audioButton,
-                      mixerButton, snapButton, projectButton,
+                      menuButton, libraryButton, projectButton,
                       tempoDownButton, tempoUpButton;
     juce::Label positionLabel, secondsLabel, tempoCaption, tempoLabel, sigLabel,
                  cpuLabel, masterLabel, statusLabel;
     juce::Slider masterSlider;
 
     juce::Image logo;
+    juce::String snapText { "1/4" };
+    bool snapActive = true;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TransportBar)
 };

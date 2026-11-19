@@ -39,6 +39,8 @@ private:
     void refreshRows();
     void viewChanged();
     void startRecording();
+    void createAudioTrack();
+    void createMidiTrack();
     void removeTrack (te::AudioTrack&);
     void showAudioSettings();
     void showMixer();
@@ -74,7 +76,7 @@ private:
     std::vector<std::unique_ptr<TrackRow>> rows;
     PlayheadOverlay overlay;
 
-    juce::TextButton addAudioButton, addMidiButton, projectButton;
+    juce::TextButton addTrackButton { "+" }, projectButton;
 
     std::unique_ptr<juce::DialogWindow> audioSettingsWindow;
     std::unique_ptr<juce::DialogWindow> keyboardWindow;
