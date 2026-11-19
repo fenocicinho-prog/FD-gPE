@@ -9,9 +9,26 @@ target_sources(FDgPE PRIVATE
     src/Main.cpp
     src/engine/EngineHost.h
     src/engine/EngineHost.cpp
-    src/ui/MainWindow.h
+    src/ui/Palette.h
+    src/ui/Text.h
+    src/ui/FdLookAndFeel.h
+    src/ui/FdLookAndFeel.cpp
+    src/ui/TimelineModel.h
+    src/ui/TimelineRuler.h
+    src/ui/TimelineRuler.cpp
+    src/ui/TrackRow.h
+    src/ui/TrackRow.cpp
+    src/ui/TransportBar.h
+    src/ui/TransportBar.cpp
+    src/ui/PluginBrowser.h
+    src/ui/PluginBrowser.cpp
+    src/ui/PianoRollEditor.h
+    src/ui/PianoRollEditor.cpp
+    src/ui/TempoDialog.h
+    src/ui/TempoDialog.cpp
     src/ui/MainComponent.h
-    src/ui/MainComponent.cpp)
+    src/ui/MainComponent.cpp
+    src/ui/MainWindow.h)
 
 target_compile_features(FDgPE PRIVATE cxx_std_20)
 

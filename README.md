@@ -1,30 +1,63 @@
 # FD gPE
 
 DAW gratuit et open source (Linux et Windows) avec un navigateur de plugins en un clic.
-Voir la fiche technique pour la vision, l'architecture et les jalons.
+Voir la fiche technique (`docs/`) pour la vision, l'architecture et les jalons.
 
-**État : jalon M0** — une fenêtre s'ouvre et le moteur Tracktion démarre.
+**État : jalons M2 et M3 en cours (partiel)** : pistes audio et MIDI, transport, enregistrement,
+mixage de base et mixeur, piano roll, carte de tempo, marqueurs, forme d'onde, édition des clips,
+plugins VST3 et intégrés en tuiles, annuler/rétablir et export WAV. Thème gris clair légèrement
+brillant + bleu, dans l'esprit Firefox.
 
-## 1. Prérequis
+Vérification syntaxique du 19/11/2026 : `bash scripts/verifier.sh --tout` → 10/10 sources OK,
+aucun avertissement. Compilation locale réussie le 19/11/2026 avec `bash scripts/build_local.sh`
+(1 seul cœur, priorité basse, sans risque pour 4 Go de RAM). Le binaire n'est plus versionné :
+il reste dans `build/` et une copie de sauvegarde est à conserver hors du dépôt.
 
-**Arch Linux**
+Le logo est chargé automatiquement depuis `~/Documents/FD-gPE/logo.png` s'il existe ;
+sinon un logo textuel s'affiche. Aucune image n'est fournie par le dépôt : tu prépares le fichier toi-même.
+
+| Système | Statut |
+|---|---|
+| Ubuntu 24.04 / Xubuntu (GCC 13, CMake 3.28) | Compilé et lancé avec succès |
+| Arch Linux | Non testé |
+| Windows 10/11 | Non testé |
+
+Choisis ton guide : [Xubuntu](#guide-xubuntu-principal) · [Arch Linux](#guide-arch-linux) · [Windows](#guide-windows)
+
+---
+
+## Guide Xubuntu (principal)
+
+Ce guide marche aussi pour Ubuntu et la plupart des dérivés. Il a été validé sur Ubuntu 24.04.
+
+### Étape 1 : vérifier le système
 
 ```
-sudo pacman -S --needed base-devel git cmake ninja pkgconf ccache \
-    alsa-lib freetype2 fontconfig libx11 libxrandr libxinerama libxcursor libxext \
-    libxi libxcomposite libxrender mesa curl
+lsb_release -ds
+cmake --version     # il faut 3.22 ou plus
+g++ --version       # il faut un GCC qui gère le C++20 (GCC 11 ou plus)
 ```
 
-**Windows 10/11**
+Si CMake est trop ancien, installe une version récente avec `pip install --user cmake`
+ou via le site de CMake.
 
-- Visual Studio 2022 (ou Build Tools) avec la charge de travail « Développement Desktop en C++ »
-- CMake 3.22 ou plus récent, Git
+### Étape 2 : installer les paquets
 
-## 2. Récupérer les dépendances (une seule fois)
+```
+sudo apt update
+sudo apt install -y build-essential git cmake ninja-build pkg-config ccache \
+    libasound2-dev libfreetype-dev libfontconfig1-dev libx11-dev libxrandr-dev \
+    libxinerama-dev libxcursor-dev libxext-dev libxi-dev libxcomposite-dev \
+    libxrender-dev libgl-dev libcurl4-openssl-dev
+```
+
+Sur Xubuntu 22.04, remplace `libfreetype-dev` par `libfreetype6-dev`.
+
+### Étape 3 : récupérer les dépendances (une seule fois)
 
 Les dépendances sont deux sous-modules git, **épinglés** sur des versions testées ensemble.
 Ne lance pas `git submodule update --recursive` : le sous-module JUCE de Tracktion utilise
-une URL SSH, c'est pourquoi on ajoute JUCE nous-mêmes en HTTPS.
+une URL SSH. C'est pourquoi on ajoute JUCE nous-mêmes, en HTTPS.
 
 Depuis la racine du dépôt :
 
@@ -36,45 +69,267 @@ git submodule add https://github.com/juce-framework/JUCE.git third_party/JUCE
 git -C third_party/JUCE checkout 7ff644f65d7daa1428c34b9738ebb5c449dc9172
 
 git add .gitmodules third_party
+git commit -m "Ajout des dépendances JUCE et Tracktion Engine"
 ```
 
-Quelqu'un qui clone ensuite le dépôt fait seulement : `git submodule update --init`
+Quelqu'un qui clone ensuite le dépôt fait seulement :
+
+```
+git submodule update --init
+```
+
 (sans `--recursive`).
 
-## 3. Compiler
-
-**Linux**
+### Étape 4 : compiler
 
 ```
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-cmake --build build
+cmake --build build -j$(nproc)
+```
+
+- La première compilation est longue (de plusieurs minutes à plus d'une demi-heure selon
+  ta machine). Les suivantes sont rapides, surtout avec `ccache`.
+- Le premier `cmake -S . -B build` prend aussi un moment : JUCE prépare ses outils.
+- Si ta machine a peu de mémoire (8 Go ou moins) et que la compilation se bloque ou est
+  tuée, limite les tâches en parallèle : `cmake --build build -j2`.
+
+### Étape 5 : lancer
+
+```
 ./build/app/FDgPE_artefacts/Debug/FDgPE
 ```
 
-**Windows** (Developer PowerShell for VS 2022)
-
-```
-cmake -S . -B build -G "Visual Studio 17 2022"
-cmake --build build --config Debug
-.\build\app\FDgPE_artefacts\Debug\FDgPE.exe
-```
-
-La première compilation est longue (Tracktion et JUCE sont de gros modules) ; les suivantes
-sont rapides. Le premier `cmake -S . -B build` prend aussi un moment (JUCE prépare ses outils).
-
-## 4. Critère de réussite du jalon M0
+### Étape 6 : vérifier le jalon M0
 
 - La fenêtre « FD gPE » s'ouvre.
 - Elle affiche la version de Tracktion Engine et un périphérique audio.
 - **Lecture / Stop** fait avancer puis arrêter la position.
 - **Réglages audio** ouvre le choix du périphérique, de la fréquence et du tampon.
 
-## 5. Dépannage
+### Audio sous Xubuntu
 
-- *« third_party/... est vide »* : refais l'étape 2.
-- *Périphérique audio « aucun »* sous Linux : vérifie `aplay -l`. Avec PipeWire, installe
-  `pipewire-alsa` et `pipewire-jack`, puis choisis le périphérique dans Réglages audio.
-- Envoie-moi les erreurs de compilation en entier, je renverrai les fichiers corrigés complets.
+- Si l'écran affiche « Périphérique audio : aucun », ouvre **Réglages audio** et choisis
+  un périphérique (ALSA, ou celui de PipeWire/PulseAudio selon ton système).
+- Vérifie que ta carte son est vue : `aplay -l`.
+- Les messages `ALSA lib seq_hw.c ... open /dev/snd/seq failed` ou
+  `JUCE Assertion failure in juce_Midi_linux.cpp` peuvent apparaître quand il n'y a pas de
+  MIDI sur la machine. Ils sont sans gravité pour le jalon M0.
+
+### Dépannage Xubuntu
+
+| Symptôme | Cause et solution |
+|---|---|
+| `third_party/... est vide ou absent` | Refais l'étape 3. |
+| `X11/extensions/XInput2.h: No such file` | Paquet manquant : `sudo apt install libxi-dev`. |
+| `undefined reference to __atomic_store` | Déjà géré dans `app/CMakeLists.txt` (`libatomic`). Si tu le revois, récupère la dernière version du fichier. |
+| `Package 'egl'`, `glesv2`, `webkit2gtk` not found | Messages d'information de JUCE, sans gravité : on n'utilise pas ces fonctions. |
+| Compilation tuée ou machine qui gèle | Manque de mémoire : `cmake --build build -j1`. |
+
+Pour toute autre erreur de compilation, envoie-la en entier : les fichiers corrigés
+seront renvoyés complets.
+
+---
+
+## Guide Arch Linux
+
+Arch fournit des compilateurs très récents. Ce guide n'a pas été testé sur Arch : si une
+erreur de compilation apparaît, envoie-la en entier.
+
+### Paquets
+
+```
+sudo pacman -S --needed base-devel git cmake ninja pkgconf ccache \
+    alsa-lib freetype2 fontconfig libx11 libxrandr libxinerama libxcursor libxext \
+    libxi libxcomposite libxrender mesa curl pipewire-alsa
+```
+
+### Ensuite
+
+Les étapes **3 à 6** sont identiques à celles du guide Xubuntu :
+dépendances git, compilation, lancement, vérification.
+
+```
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+cmake --build build -j$(nproc)
+./build/app/FDgPE_artefacts/Debug/FDgPE
+```
+
+### Particularités Arch
+
+- Audio : PipeWire est le serveur de son habituel. `pipewire-alsa` permet à l'application
+  de le voir comme un périphérique ALSA. Choisis-le dans **Réglages audio**.
+- Mises à jour : après une grosse mise à jour système, supprime le dossier `build/` et
+  recompile depuis zéro si CMake se plaint d'un ancien compilateur.
+
+---
+
+## Guide Windows
+
+Ce guide n'a pas été testé sur Windows : si une étape échoue, envoie le message d'erreur
+en entier.
+
+### Étape 1 : installer les outils
+
+Dans PowerShell (ou avec les installateurs graphiques de chaque outil) :
+
+```
+winget install --id Git.Git -e
+winget install --id Kitware.CMake -e
+winget install --id Ninja-build.Ninja -e
+winget install --id Microsoft.VisualStudio.2022.BuildTools -e --override "--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+```
+
+Visual Studio 2022 (ou plus récent) complet convient aussi : il faut la charge de travail
+« Développement Desktop en C++ ». Ferme et rouvre ensuite ton terminal.
+
+### Étape 2 : dossier court et chemins longs
+
+Windows limite les chemins à 260 caractères, et JUCE/Tracktion ont des chemins profonds.
+
+- Mets le projet dans un dossier court, par exemple `C:\dev\fd-gpe`.
+- Dans un PowerShell **administrateur** :
+
+```
+git config --system core.longpaths true
+New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+```
+
+### Étape 3 : ouvrir le bon terminal
+
+Ouvre **x64 Native Tools Command Prompt for VS 2022** (menu Démarrer). Ce terminal sait
+trouver le compilateur. Un PowerShell ou un cmd normal ne suffit pas.
+
+```
+cd C:\dev\fd-gpe
+```
+
+### Étape 4 : récupérer les dépendances (une seule fois)
+
+Mêmes commandes que l'étape 3 du guide Xubuntu :
+
+```
+git submodule add https://github.com/Tracktion/tracktion_engine.git third_party/tracktion_engine
+git -C third_party/tracktion_engine checkout c6293127cdc0a8488aea2ae0907f4709ee89c228
+
+git submodule add https://github.com/juce-framework/JUCE.git third_party/JUCE
+git -C third_party/JUCE checkout 7ff644f65d7daa1428c34b9738ebb5c449dc9172
+
+git add .gitmodules third_party
+git commit -m "Ajout des dépendances JUCE et Tracktion Engine"
+```
+
+Pour un clone existant : `git submodule update --init` (sans `--recursive`).
+
+### Étape 5 : compiler et lancer
+
+```
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+cmake --build build
+build\app\FDgPE_artefacts\Debug\FDgPE.exe
+```
+
+### Étape 6 : vérifier le jalon M0
+
+Mêmes critères que sous Xubuntu. L'audio utilise le pilote WASAPI de Windows. Si aucun
+périphérique n'est affiché, ouvre **Réglages audio** et choisis ta sortie.
+
+### Dépannage Windows
+
+| Symptôme | Cause et solution |
+|---|---|
+| `cl` ou `cmake` introuvable | Tu n'es pas dans le « x64 Native Tools Command Prompt », ou tu n'as pas rouvert le terminal après l'installation. |
+| Erreur « path too long » ou fichier introuvable | Refais l'étape 2 (dossier court et chemins longs). |
+| `third_party/... est vide ou absent` | Refais l'étape 4. |
+
+---
+
+## Utiliser et tester
+
+Au premier lancement, un projet est créé dans `~/Documents/FD-gPE/Projet.tracktionedit`
+avec une piste **Audio 1** et une piste **MIDI 1**. Il est sauvegardé à chaque arrêt
+d'enregistrement, quand tu ajoutes ou supprimes une piste, et à la fermeture.
+
+### Prise en main
+
+| Pour faire ça | Fais ça |
+|---|---|
+| Lecture / stop | Bouton **LECTURE**, ou la barre d'espace |
+| Revenir au début | Bouton **\|<** |
+| Enregistrer | Arme une piste avec **ARM**, puis **REC**. REC refuse de démarrer si aucune piste n'est armée |
+| Enregistrer de l'audio | Piste **AUDIO** armée : entrée 1 de la carte son (mono) |
+| Enregistrer du MIDI | Piste **MIDI** armée : clavier à l'écran (souris, ou touches A W S E D F T G Y H U J du clavier de l'ordinateur) ou clavier MIDI branché |
+| Boucle / métronome | **BOUCLE** (4 mesures depuis la position courante) et **MÉTRO** |
+| Tempo | Boutons **-** et **+** à côté de TEMPO |
+| Déplacer la tête de lecture | Clic ou glissé sur la règle, ou clic dans une piste |
+| Zoom / défilement | Ctrl + molette = zoom ; Maj + molette = défilement horizontal |
+| Renommer une piste | Double-clic sur son nom |
+| Remettre un curseur à zéro | Double-clic sur VOL ou PAN |
+| Ajouter / supprimer une piste | **+ PISTE AUDIO**, **+ PISTE MIDI**, bouton **X** |
+| Nouveau / ouvrir / enregistrer sous | Bouton **PROJET…**, ou **Ctrl+N** / **Ctrl+O** / **Ctrl+Maj+S** |
+| Importer un fichier audio | **PROJET… → Importer**, **Ctrl+I**, ou clic droit sur une piste |
+| Dupliquer une piste | **PROJET… → Dupliquer**, **Ctrl+D**, ou clic droit sur une piste |
+| Ouvrir le mixeur vertical | Bouton **MIXEUR** (VOL, PAN, MUTE par piste) |
+| Changer le magnétisme | Bouton **SNAP** : OFF, 1/16, 1/8, 1/4, 1/2, 1 mesure |
+| Ajouter un clip MIDI | Double-clic dans une piste MIDI, ou clic droit → **Nouveau clip MIDI ici** |
+| Couleur d'une piste | Clic droit sur la piste → **Changer la couleur…** |
+| Déplacer / redimensionner un clip | Glisser le clip ; saisir son bord droit pour changer sa durée |
+|Éditer des notes MIDI|Double-clic sur un clip MIDI, ou bouton **PIANO ROLL**|
+|Créer un clip MIDI vide|**PIANO ROLL** sans clip sélectionné : un clip de 4 mesures est créé à la tête de lecture sur la première piste MIDI|
+|Gérer le tempo et les signatures|**TEMPO** : carte de tempo, ajout/suppression de points, 4/4, 3/4, 6/8, etc.|
+|Ajouter un marqueur|**+ MARQUEUR**, ou touche **M**|
+|Aller au marqueur suivant / précédent|**M>** / **<M**|
+|Ouvrir le navigateur de plugins|**PLUGINS**, touche **P**, ou tuile **+** sur une piste|
+|Éditer / activer / retirer un plugin|Tuile du plugin dans l'en-tête de piste : clic = éditeur, point = ON/OFF, **x** = retrait|
+|Couper / dupliquer / supprimer un clip|Clic droit sur le clip|
+|Exporter le mixage|**EXPORTER WAV**, ou **Ctrl+E**|
+|Annuler / rétablir|**ANNULER** / **RÉTABLIR**, **Ctrl+Z** / **Ctrl+Maj+Z** / **Ctrl+Y**|
+|Enregistrer le projet|**Ctrl+S** (également automatique après ajout/suppression de piste ou de clip)|
+
+Les témoins bleus sont les petits voyants allumés (lecture, boucle, métronome). Le voyant
+rouge de REC indique l'enregistrement. Pendant l'enregistrement, un bloc rouge grandit sur
+la piste armée ; le clip définitif apparaît quand tu arrêtes.
+
+### Piano roll
+
+- Double-clic sur une case vide : créer une note.
+- Glisser une note : déplacer en hauteur et dans le temps.
+- Clic droit sur une note : la supprimer. **Suppr** supprime la note sélectionnée.
+- Quantification : 1/4, 1/8, 1/16, 1/32.
+- Ctrl + molette : zoom horizontal ; Maj + molette : défilement.
+
+### Plugins
+
+Le navigateur **PLUGINS** affiche les plugins intégrés Tracktion et les VST3 scannés.
+Le scan VST3 se lance depuis le bouton **SCAN** ; le bouton **DOSSIER** ajoute un chemin
+supplémentaire. Les tuiles sont classées par Instruments / Effets / Externes, avec recherche.
+Un clic sur **+** ajoute le plugin à la piste choisie.
+
+### Critères de réussite
+
+- Enregistrer quelques secondes d'audio, arrêter, rejouer : le clip est entendu sans craquements.
+- Sur la piste MIDI, jouer au clavier à l'écran : le synthé intégré sonne. Enregistrer, rejouer.
+- MUTE et SOLO coupent ou isolent les pistes ; VOL et PAN s'entendent.
+- Le vu-mètre de la piste bouge pendant la lecture.
+- Fermer et rouvrir le programme : les pistes et les clips sont toujours là.
+
+### Limites connues
+
+- Un seul armement à la fois (armer une piste désarme les autres).
+- Une seule entrée audio (entrée 1, mono), sans écoute directe, pour éviter le larsen.
+- Les formes d'onde audio sont chargées à la demande ; sur un très gros projet, l'affichage peut prendre un instant.
+- L'export WAV est synchrone : l'interface peut se figer quelques instants sur un long projet.
+- Le scan VST3 n'est pas hors processus : un plugin qui plante peut faire tomber l'application. Pas de LV2 ni de CLAP pour l'instant.
+- Le magnétisme est disponible, mais les bornes de boucle ne se règlent pas encore à la souris ; copier/coller des clips se fait par duplication.
+- Le séquenceur de pas, le sampler à pads, les thèmes interchangeables et les bus d'envoi ne sont pas encore implémentés.
+- Catalogue en ligne, installateur, signatures, comptes et packs de sons (jalons M4+) arrivent plus tard.
+
+## Plusieurs systèmes sur le même ordinateur
+
+- Ne partage pas le dossier `build/` entre deux systèmes : CMake mémorise le compilateur
+  et les chemins. Utilise un dossier par système : `-B build-xubuntu`, `-B build-arch`.
+  Ils sont ignorés par git (voir `.gitignore`).
+- Le code et git sont communs : tu modifies sur un système, tu fais un commit, tu récupères
+  sur l'autre.
 
 ## Structure
 
@@ -84,6 +339,8 @@ app/
   CMakeLists.txt      cible FDgPE
   src/Main.cpp        point d'entrée JUCE
   src/engine/         EngineHost : seul endroit qui parle à Tracktion
-  src/ui/             fenêtre principale (écran M0)
+  src/ui/             interface : style (FdLookAndFeel), transport, pistes, règle,
+                      navigateur de plugins, piano roll, tempo, fenêtre principale
+docs/                 fiche technique
 third_party/          sous-modules (JUCE, Tracktion), épinglés
 ```

@@ -1,0 +1,4 @@
+{
+  "schema": "https://opencode.ia/config.json",
+  "default_agent": "chef"
+}

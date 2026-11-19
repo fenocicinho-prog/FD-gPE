@@ -1,5 +1,6 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
+#include "ui/FdLookAndFeel.h"
 #include "ui/MainWindow.h"
 
 class FDgPEApplication final : public juce::JUCEApplication
@@ -11,12 +12,14 @@ public:
 
     void initialise (const juce::String&) override
     {
+        juce::LookAndFeel::setDefaultLookAndFeel (&lookAndFeel);
         mainWindow = std::make_unique<fdgpe::MainWindow> (getApplicationName());
     }
 
     void shutdown() override
     {
         mainWindow.reset();
+        juce::LookAndFeel::setDefaultLookAndFeel (nullptr);
     }
 
     void systemRequestedQuit() override
@@ -25,6 +28,7 @@ public:
     }
 
 private:
+    fdgpe::FdLookAndFeel lookAndFeel;
     std::unique_ptr<fdgpe::MainWindow> mainWindow;
 };
 

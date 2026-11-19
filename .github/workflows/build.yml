@@ -1,0 +1,83 @@
+# Compile FD gPE sur les serveurs de GitHub (gratuit pour un dépôt public).
+# Objectif : ne pas faire tourner la compilation lourde sur le petit ordinateur.
+#
+# - Se lance à chaque "git push" et à la demande (onglet Actions > Compilation > Run workflow).
+# - Le cache ccache rend les compilations suivantes bien plus courtes (la première est la plus longue).
+# - Le programme compilé est disponible 7 jours dans l'onglet de l'exécution ("Artifacts").
+
+name: Compilation
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: compilation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    name: Linux (Ubuntu 24.04)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+        with:
+          submodules: true          # un seul niveau : JUCE et Tracktion (surtout pas "recursive")
+
+      - name: Installer les paquets
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build pkg-config \
+            libasound2-dev libfreetype-dev libfontconfig1-dev libx11-dev libxrandr-dev \
+            libxinerama-dev libxcursor-dev libxext-dev libxi-dev libxcomposite-dev \
+            libxrender-dev libgl-dev libcurl4-openssl-dev
+
+      - name: Cache de compilation (ccache)
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: linux
+          max-size: 2G
+
+      - name: Configurer
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_C_FLAGS_DEBUG="-O0 -g0"
+          -DCMAKE_CXX_FLAGS_DEBUG="-O0 -g0"
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+      - name: Compiler
+        run: cmake --build build -j"$(nproc)"
+
+      - name: Garder le programme compilé
+        uses: actions/upload-artifact@v4
+        with:
+          name: FDgPE-linux
+          path: build/app/FDgPE_artefacts/Debug/FDgPE
+          retention-days: 7
+
+  windows:
+    name: Windows (Visual Studio 2022)
+    runs-on: windows-2022
+    continue-on-error: true         # Windows n'a pas encore été testé : à retirer quand il passe
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Configurer
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Compiler
+        run: cmake --build build --config Release --parallel 4
+
+      - name: Garder le programme compilé
+        uses: actions/upload-artifact@v4
+        with:
+          name: FDgPE-windows
+          path: build/app/FDgPE_artefacts/Release/FDgPE.exe
+          retention-days: 7

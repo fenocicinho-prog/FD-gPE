@@ -3,6 +3,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include "MainComponent.h"
+#include "Palette.h"
 
 namespace fdgpe
 {
@@ -11,13 +12,13 @@ class MainWindow final : public juce::DocumentWindow
 public:
     explicit MainWindow (const juce::String& name)
         : juce::DocumentWindow (name,
-                                juce::Colour (0xff15171c),
+                                palette::bgBottom,
                                 juce::DocumentWindow::allButtons)
     {
         setUsingNativeTitleBar (true);
         setContentOwned (new MainComponent(), true);
         setResizable (true, true);
-        setResizeLimits (760, 480, 4096, 4096);
+        setResizeLimits (1040, 600, 4096, 4096);
         centreWithSize (getWidth(), getHeight());
         setVisible (true);
     }
