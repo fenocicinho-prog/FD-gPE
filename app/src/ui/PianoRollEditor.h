@@ -30,6 +30,9 @@ public:
     // Fermeture quand l'éditeur est intégré dans la fenêtre principale.
     std::function<void()> onClose;
 
+    // Appelé après Ctrl+Z/Ctrl+Y : la grille doit réafficher les notes annulées.
+    void refreshAll();
+
 private:
     class Grid final : public juce::Component
     {
@@ -76,7 +79,6 @@ private:
     };
 
     void quantize();
-    void refreshAll();
 
     EngineHost& host;
     te::MidiClip& clip;

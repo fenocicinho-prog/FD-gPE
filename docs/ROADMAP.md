@@ -76,8 +76,11 @@ fenêtre est maintenant créée avec `create()` puis rendue visible : elle est n
       vélocité, quantification. *Critère* : on écrit un motif à la souris et on l'entend.
       *Fait le 19/11 : il manquait le redimensionnement. Bord droit de la note saisissable (poignée visible,
       curseur, 7 px de prise), durée ajustée par pas de 1/4 avec minimum 0,25 temps et borne de fin de clip,
-      undo via `EngineHost::updateNote`. Test logique 6 cas, build local et smoke test Debug OK ;
-      validation utilisateur du geste en attente.*
+      undo via `EngineHost::updateNote`. Test logique 6 cas, build local et smoke test Debug OK.
+      Correctif du 19/11 : `updateNote` et `applyQuantisation` groupent leurs actions dans une seule
+      transaction d'undo (Ctrl+Z annule toute l'édition) et `MainComponent` rafraîchit le piano roll
+      après Ctrl+Z/Ctrl+Y. **Validée par l'utilisateur le 19/11.** Risque résiduel connu : le bouton
+      **ANNULER** de la TransportBar annule sans rafraîchir le piano roll ouvert.*
 - [ ] **M2.5 Séquenceur de pas** : grille de 16 pas avec pads, pour les beats. *Critère* : on fait un beat de
       batterie en cliquant les pas.
 - [ ] **M2.6 Sampler** : charger des WAV sur des pads, kits de batterie. *Critère* : on joue et on séquence ses

@@ -941,12 +941,18 @@ void EngineHost::updateNote (te::MidiClip& clip, int index, const NoteInfo& info
     if (index < 0 || index >= notes.size())
         return;
 
+    auto& undo = edit->getUndoManager();
+    undo.beginNewTransaction();
+
     auto* note = notes[index];
     note->setStartAndLength (te::BeatPosition::fromBeats (juce::jmax (0.0, info.startBeat)),
                              te::BeatDuration::fromBeats (juce::jmax (0.05, info.lengthBeats)),
-                             &edit->getUndoManager());
-    note->setNoteNumber (juce::jlimit (0, 127, info.pitch), &edit->getUndoManager());
-    note->setVelocity (juce::jlimit (1, 127, info.velocity), &edit->getUndoManager());
+                             &undo);
+    note->setNoteNumber (juce::jlimit (0, 127, info.pitch), &undo);
+    note->setVelocity (juce::jlimit (1, 127, info.velocity), &undo);
+
+    // Une seule annulation pour toute la modification de la note.
+    undo.beginNewTransaction();
 }
 
 void EngineHost::removeNote (te::MidiClip& clip, int index)
@@ -962,9 +968,15 @@ void EngineHost::applyQuantisation (te::MidiClip& clip)
     te::QuantisationType quantisation;
     quantisation.setType ("1/" + juce::String (pendingQuantDivision));
 
+    auto& undo = edit->getUndoManager();
+    undo.beginNewTransaction();
+
     for (auto* note : clip.getSequence().getNotes())
         note->setStartAndLength (quantisation.roundBeatToNearest (note->getStartBeat()),
-                                 note->getLengthBeats(), &edit->getUndoManager());
+                                 note->getLengthBeats(), &undo);
+
+    // Ctrl+Z annule la quantification entière, pas une note à la fois.
+    undo.beginNewTransaction();
 }
 
 void EngineHost::quantize (te::MidiClip& clip, int division)

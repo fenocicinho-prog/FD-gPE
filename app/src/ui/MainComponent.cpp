@@ -350,11 +350,15 @@ bool MainComponent::keyPressed (const juce::KeyPress& key)
             case 'Z':
                 if (mods.isShiftDown()) host.redo();
                 else                   host.undo();
+                if (inlinePianoRoll != nullptr)
+                    inlinePianoRoll->refreshAll();
                 transport.refresh();
                 refreshRows();
                 return true;
             case 'Y':
                 host.redo();
+                if (inlinePianoRoll != nullptr)
+                    inlinePianoRoll->refreshAll();
                 transport.refresh();
                 refreshRows();
                 return true;
