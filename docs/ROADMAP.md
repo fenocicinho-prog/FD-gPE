@@ -91,6 +91,9 @@ fenêtre est maintenant créée avec `create()` puis rendue visible : elle est n
       lit désormais l'état réel des notes et `updatePlayhead` éteint les pads orphelins. Sonde
       clic → suppression → clic : piste recréée, 1 note, zéro assertion. Le synthé FourOsc reste le
       son par défaut des pistes MIDI jusqu'au sampler M2.6 (choix de l'utilisateur).
+      Correctif du 20/11 (bis) : `resized()` remettait l'overlay au premier plan après l'ouverture du
+      panneau, qui était donc invisible et interceptait les clics ; `toFront(false)` est rappelé après
+      le placement du panneau. Sonde de superposition : « PANNEAU DEVANT ».
 - [ ] **M2.6 Sampler** : charger des WAV sur des pads, kits de batterie. *Critère* : on joue et on séquence ses
       propres sons.
 - [ ] **M2.7 Thèmes de couleurs** : `Palette` devient un thème modifiable (sombre, clair, choix de la couleur

@@ -290,6 +290,10 @@ void MainComponent::resized()
     {
         const int w = juce::jmax (240, juce::jmin (480, viewport.getWidth() - 8));
         stepPanel->setBounds (viewport.getRight() - w - 8, viewport.getBottom() - 248, w, 240);
+
+        // L'overlay vient d'être remis au premier plan : le panneau doit rester
+        // au-dessus, sinon ses pads sont invisibles et leurs clics interceptés.
+        stepPanel->toFront (false);
     }
 
     layoutRows();
