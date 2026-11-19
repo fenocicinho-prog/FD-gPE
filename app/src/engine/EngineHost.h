@@ -156,6 +156,8 @@ public:
     void sendMidiToTrack (te::AudioTrack&, const juce::MidiMessage&);
     void sendNoteOn (te::AudioTrack&, int midiNote, float velocity);
     void sendNoteOff (te::AudioTrack&, int midiNote);
+    void sendNoteOn (te::MidiClip&, int midiNote, float velocity);
+    void sendNoteOff (te::MidiClip&, int midiNote);
 
     //==============================================================================
     // Carte de tempo

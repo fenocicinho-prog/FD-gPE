@@ -651,6 +651,18 @@ void EngineHost::sendNoteOff (te::AudioTrack& track, int midiNote)
     sendMidiToTrack (track, juce::MidiMessage::noteOff (1, midiNote));
 }
 
+void EngineHost::sendNoteOn (te::MidiClip& clip, int midiNote, float velocity)
+{
+    if (auto* track = dynamic_cast<te::AudioTrack*> (clip.getParent()))
+        sendNoteOn (*track, midiNote, velocity);
+}
+
+void EngineHost::sendNoteOff (te::MidiClip& clip, int midiNote)
+{
+    if (auto* track = dynamic_cast<te::AudioTrack*> (clip.getParent()))
+        sendNoteOff (*track, midiNote);
+}
+
 //==============================================================================
 std::vector<TempoPoint> EngineHost::getTempoMap() const
 {

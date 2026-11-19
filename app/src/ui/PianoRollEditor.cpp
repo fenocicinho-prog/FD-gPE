@@ -198,7 +198,7 @@ void PianoRollEditor::Grid::mouseDown (const juce::MouseEvent& e)
     if (e.x < keyboardWidth)
     {
         previewNote = pitchAt (e.y);
-        host.sendNoteOn (previewNote, 0.8f);
+        host.sendNoteOn (clip, previewNote, 0.8f);
         return;
     }
 
@@ -249,7 +249,7 @@ void PianoRollEditor::Grid::mouseUp (const juce::MouseEvent&)
 {
     if (previewNote >= 0)
     {
-        host.sendNoteOff (previewNote);
+        host.sendNoteOff (clip, previewNote);
         previewNote = -1;
     }
 

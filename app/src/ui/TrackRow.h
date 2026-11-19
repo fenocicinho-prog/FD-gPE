@@ -64,6 +64,7 @@ public:
         std::function<void (te::AudioTrack&)> addPlugin;
         std::function<void (te::Plugin&)> pluginEditor;
         std::function<void (te::MidiClip&)> openPianoRoll;
+        std::function<void (te::AudioTrack&)> openKeyboard;
         std::function<void (te::Clip&)> splitClip;
         std::function<void (te::Clip&)> duplicateClip;
         std::function<void (te::Clip&)> deleteClip;
@@ -111,6 +112,7 @@ private:
 
     juce::Label kindLabel, nameLabel, volLabel, panLabel;
     juce::TextButton armButton { "ARM" }, muteButton { "MUTE" }, soloButton { "SOLO" }, deleteButton { "X" };
+    juce::TextButton keyboardButton { "CLAVIER" };
     juce::Slider volumeSlider, panSlider;
     PluginStrip pluginStrip;
     juce::Rectangle<int> meterBounds;

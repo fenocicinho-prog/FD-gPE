@@ -27,6 +27,11 @@ un défilement manuel et `seek()` recentre la vue pour revenir en arrière ; les
 les notes du clavier à l'écran via leur device MIDI propre, avec réparation des projets sans synthé ;
 le piano roll s'ouvre intégré au niveau de la piste au double-clic sur un clip MIDI.
 
+Ajouts du 19/11 (à valider) : le clavier horizontal du bas est retiré ; chaque piste MIDI a un bouton
+**CLAVIER** qui ouvre un clavier jouable attaché à cette piste ; le clavier dessiné dans le piano roll
+joue la note sur le synthé de la piste (aperçu audible). Les touches de l'ordinateur gardent leur
+routage vers la piste MIDI sélectionnée.
+
 ## M2 : édition (rendre l'enregistrement utile)
 
 - [x] **M2.1 Forme d'onde** dans les clips audio (miniatures Tracktion). *Critère* : un clip enregistré montre sa

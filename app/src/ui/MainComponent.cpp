@@ -179,8 +179,7 @@ MainComponent::MainComponent()
           [this] { cycleSnap(); }
       }),
       ruler (host, model, [this] (double s) { seek (s); }),
-      overlay (model),
-      keyboard (keyboardState, juce::MidiKeyboardComponent::horizontalKeyboard)
+      overlay (model)
 {
     model.changed = [this]
     {
@@ -223,18 +222,6 @@ MainComponent::MainComponent()
     addAndMakeVisible (addMidiButton);
     addAndMakeVisible (projectButton);
 
-    keyboard.setAvailableRange (24, 108);
-    keyboard.setLowestVisibleKey (48);
-    keyboard.setKeyWidth (28.0f);
-    keyboard.setScrollButtonsVisible (true);
-    keyboard.setColour (juce::MidiKeyboardComponent::keyDownOverlayColourId, palette::blue.withAlpha (0.65f));
-    keyboard.setColour (juce::MidiKeyboardComponent::mouseOverKeyOverlayColourId, palette::blue.withAlpha (0.25f));
-    keyboard.setColour (juce::MidiKeyboardComponent::shadowColourId, palette::outline);
-    keyboard.setColour (juce::MidiKeyboardComponent::upDownButtonBackgroundColourId, palette::panelHi);
-    keyboard.setColour (juce::MidiKeyboardComponent::upDownButtonArrowColourId, palette::blue);
-    keyboardState.addListener (this);
-    addAndMakeVisible (keyboard);
-
     addAndMakeVisible (overlay);
 
     setWantsKeyboardFocus (true);
@@ -249,7 +236,7 @@ MainComponent::~MainComponent()
 {
     stopTimer();
     releaseHeldKeys();
-    keyboardState.removeListener (this);
+    keyboardWindow.reset();
     audioSettingsWindow.reset();
     rows.clear();
 }
@@ -283,7 +270,6 @@ void MainComponent::resized()
     auto area = getLocalBounds().reduced (1);
 
     transport.setBounds (area.removeFromTop (96));
-    keyboard.setBounds (area.removeFromBottom (84));
 
     auto addBar = area.removeFromBottom (52);
     addAudioButton.setBounds (addBar.removeFromLeft (170).reduced (8, 6));
@@ -457,14 +443,49 @@ void MainComponent::handleNoteKey (const juce::KeyPress& key, bool down)
         if (std::find (activeNoteKeys.begin(), activeNoteKeys.end(), code) == activeNoteKeys.end())
         {
             activeNoteKeys.push_back (code);
-            keyboardState.noteOn (1, note, 0.85f);
+
+            if (auto* track = getFocusedMidiTrack())
+            {
+                activeNoteTracks[code] = track;
+                host.sendNoteOn (*track, note, 0.85f);
+            }
+            else
+            {
+                host.sendNoteOn (note, 0.85f);
+            }
         }
     }
     else
     {
-        keyboardState.noteOff (1, note, 0.0f);
+        // Le note-off part vers la piste qui a reçu le note-on, même si le
+        // focus a changé pendant que la touche était enfoncée.
+        auto it = activeNoteTracks.find (code);
+
+        if (it != activeNoteTracks.end())
+        {
+            if (trackStillExists (it->second))
+                host.sendNoteOff (*it->second, note);
+            else
+                host.sendNoteOff (note);
+
+            activeNoteTracks.erase (it);
+        }
+        else
+        {
+            host.sendNoteOff (note);
+        }
+
         activeNoteKeys.erase (std::remove (activeNoteKeys.begin(), activeNoteKeys.end(), code), activeNoteKeys.end());
     }
+}
+
+bool MainComponent::trackStillExists (te::AudioTrack* track)
+{
+    if (track == nullptr)
+        return false;
+
+    const auto tracks = host.getTracks();
+    return std::find (tracks.begin(), tracks.end(), track) != tracks.end();
 }
 
 void MainComponent::releaseHeldKeys()
@@ -475,7 +496,22 @@ void MainComponent::releaseHeldKeys()
     {
         if (! juce::KeyPress::isKeyCurrentlyDown (*it))
         {
-            keyboardState.noteOff (1, noteForKeyCode (*it), 0.0f);
+            auto target = activeNoteTracks.find (*it);
+
+            if (target != activeNoteTracks.end())
+            {
+                if (trackStillExists (target->second))
+                    host.sendNoteOff (*target->second, noteForKeyCode (*it));
+                else
+                    host.sendNoteOff (noteForKeyCode (*it));
+
+                activeNoteTracks.erase (target);
+            }
+            else
+            {
+                host.sendNoteOff (noteForKeyCode (*it));
+            }
+
             it = activeNoteKeys.erase (it);
         }
         else
@@ -489,8 +525,9 @@ void MainComponent::releaseHeldKeys()
 void MainComponent::rebuildRows()
 {
     // Les lignes sont détruites AVANT toute suppression de piste (leurs vu-mètres
-    // sont branchés sur les pistes). L'éditeur intégré référence un clip : on le
-    // ferme aussi avant de reconstruire les lignes.
+    // sont branchés sur les pistes). L'éditeur intégré et le clavier référencent
+    // une piste/un clip : on les ferme aussi avant de reconstruire les lignes.
+    keyboardWindow.reset();
     inlinePianoRoll.reset();
     rows.clear();
 
@@ -501,6 +538,7 @@ void MainComponent::rebuildRows()
     callbacks.addPlugin     = [this] (te::AudioTrack& t) { PluginBrowser::show (host, &t); };
     callbacks.pluginEditor  = [this] (te::Plugin& p) { showPluginEditor (p); };
     callbacks.openPianoRoll = [this] (te::MidiClip& c) { openPianoRoll (c); };
+    callbacks.openKeyboard  = [this] (te::AudioTrack& t) { openKeyboard (t); };
 
     callbacks.splitClip = [this] (te::Clip& clip)
     {
@@ -949,6 +987,23 @@ void MainComponent::openPianoRoll()
     openPianoRoll (*clip);
 }
 
+void MainComponent::openKeyboard (te::AudioTrack& track)
+{
+    keyboardWindow.reset();
+
+    juce::DialogWindow::LaunchOptions options;
+    options.dialogTitle = tr ("Clavier — ") + track.getName();
+    options.dialogBackgroundColour = palette::panel;
+    options.escapeKeyTriggersCloseButton = true;
+    options.useNativeTitleBar = true;
+    options.resizable = false;
+    options.componentToCentreAround = this;
+    options.content.setOwned (new MidiKeyboardPanel (host, track));
+
+    keyboardWindow.reset (options.launchAsync());
+    transport.setStatus (tr ("Clavier : cliquez sur les touches pour jouer la piste."));
+}
+
 void MainComponent::openPianoRoll (te::MidiClip& clip)
 {
     // Éditeur intégré, placé au niveau de la piste MIDI : plus de fenêtre
@@ -1144,23 +1199,6 @@ void MainComponent::addMarker()
     options.resizable = false;
     options.content.setOwned (content);
     options.launchAsync();
-}
-
-//==============================================================================
-void MainComponent::handleNoteOn (juce::MidiKeyboardState*, int, int midiNoteNumber, float velocity)
-{
-    if (auto* track = getFocusedMidiTrack())
-        host.sendNoteOn (*track, midiNoteNumber, velocity);
-    else
-        host.sendNoteOn (midiNoteNumber, velocity);
-}
-
-void MainComponent::handleNoteOff (juce::MidiKeyboardState*, int, int midiNoteNumber, float)
-{
-    if (auto* track = getFocusedMidiTrack())
-        host.sendNoteOff (*track, midiNoteNumber);
-    else
-        host.sendNoteOff (midiNoteNumber);
 }
 
 //==============================================================================

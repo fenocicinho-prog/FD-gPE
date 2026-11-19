@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 #include <juce_audio_utils/juce_audio_utils.h>
@@ -8,6 +9,7 @@
 
 #include "../engine/EngineHost.h"
 #include "TimelineModel.h"
+#include "MidiKeyboardPanel.h"
 #include "PianoRollEditor.h"
 #include "TimelineRuler.h"
 #include "TrackRow.h"
@@ -18,8 +20,7 @@ namespace fdgpe
 /** Fenêtre principale : transport, pistes audio et MIDI, règle, clavier à
     l'écran et accès aux outils (plugins, piano roll, tempo, export). */
 class MainComponent final : public juce::Component,
-                            private juce::Timer,
-                            private juce::MidiKeyboardState::Listener
+                            private juce::Timer
 {
 public:
     MainComponent();
@@ -32,8 +33,6 @@ public:
 
 private:
     void timerCallback() override;
-    void handleNoteOn (juce::MidiKeyboardState*, int midiChannel, int midiNoteNumber, float velocity) override;
-    void handleNoteOff (juce::MidiKeyboardState*, int midiChannel, int midiNoteNumber, float velocity) override;
 
     void rebuildRows();
     void layoutRows();
@@ -53,12 +52,14 @@ private:
     void seek (double seconds);
     void openPianoRoll();
     void openPianoRoll (te::MidiClip&);
+    void openKeyboard (te::AudioTrack&);
     void exportProject();
     void exportProjectAdvanced();
     void addMarker();
     void showPluginEditor (te::Plugin&);
     void handleNoteKey (const juce::KeyPress&, bool down);
     void releaseHeldKeys();
+    bool trackStillExists (te::AudioTrack*);
     te::AudioTrack* getFocusedTrack();
     te::AudioTrack* getFocusedMidiTrack();
     te::MidiClip* getFocusedMidiClip();
@@ -75,12 +76,11 @@ private:
 
     juce::TextButton addAudioButton, addMidiButton, projectButton;
 
-    juce::MidiKeyboardState keyboardState;
-    juce::MidiKeyboardComponent keyboard;
-
     std::unique_ptr<juce::DialogWindow> audioSettingsWindow;
+    std::unique_ptr<juce::DialogWindow> keyboardWindow;
     std::unique_ptr<PianoRollEditor> inlinePianoRoll;
     std::vector<int> activeNoteKeys;
+    std::unordered_map<int, te::AudioTrack*> activeNoteTracks;   // code touche → piste qui a reçu la note
     int tick = 0;
     bool followPlayhead = true;   // le suivi automatique s'arrête dès que l'utilisateur défile
     bool wasPlaying = false;

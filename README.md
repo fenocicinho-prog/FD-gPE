@@ -257,7 +257,7 @@ d'enregistrement, quand tu ajoutes ou supprimes une piste, et à la fermeture.
 | Revenir au début | Bouton **\|<** |
 | Enregistrer | Arme une piste avec **ARM**, puis **REC**. REC refuse de démarrer si aucune piste n'est armée |
 | Enregistrer de l'audio | Piste **AUDIO** armée : entrée 1 de la carte son (mono) |
-| Enregistrer du MIDI | Piste **MIDI** armée : clavier à l'écran (souris, ou touches A W S E D F T G Y H U J du clavier de l'ordinateur) ou clavier MIDI branché |
+| Enregistrer du MIDI | Piste **MIDI** armée : bouton **CLAVIER** de la piste (souris), touches A W S E D F T G Y H U J du clavier de l'ordinateur, ou clavier MIDI branché |
 | Boucle / métronome | **BOUCLE** (4 mesures depuis la position courante) et **MÉTRO** |
 | Tempo | Boutons **-** et **+** à côté de TEMPO |
 | Déplacer la tête de lecture | Clic ou glissé sur la règle, ou clic dans une piste |
@@ -274,7 +274,7 @@ d'enregistrement, quand tu ajoutes ou supprimes une piste, et à la fermeture.
 | Couleur d'une piste | Clic droit sur la piste → **Changer la couleur…** |
 | Déplacer / redimensionner un clip | Glisser le clip ; saisir son bord droit pour changer sa durée |
 |Éditer des notes MIDI|Double-clic sur un clip MIDI, ou bouton **PIANO ROLL** : l'éditeur s'ouvre intégré au niveau de la piste ; **FERMER** pour le replier|
-|Jouer une note MIDI|Clavier à l'écran ou touches de l'ordinateur : la note part vers la piste MIDI sélectionnée|
+|Jouer une note MIDI|Bouton **CLAVIER** de la piste MIDI, ou touches de l'ordinateur : la note part vers la piste MIDI sélectionnée|
 |Revenir en arrière dans le temps|Faire défiler avec la molette sur la règle, ou cliquer sur la règle pour recentrer la tête de lecture|
 |Créer un clip MIDI vide|**PIANO ROLL** sans clip sélectionné : un clip de 4 mesures est créé à la tête de lecture sur la première piste MIDI|
 |Gérer le tempo et les signatures|**TEMPO** : carte de tempo, ajout/suppression de points, 4/4, 3/4, 6/8, etc.|
@@ -310,7 +310,7 @@ Un clic sur **+** ajoute le plugin à la piste choisie.
 ### Critères de réussite
 
 - Enregistrer quelques secondes d'audio, arrêter, rejouer : le clip est entendu sans craquements.
-- Sur la piste MIDI, jouer au clavier à l'écran : le synthé intégré sonne. Enregistrer, rejouer.
+- Sur la piste MIDI, cliquer sur **CLAVIER** : le synthé intégré sonne. Enregistrer, rejouer.
 - MUTE et SOLO coupent ou isolent les pistes ; VOL et PAN s'entendent.
 - Le vu-mètre de la piste bouge pendant la lecture.
 - Fermer et rouvrir le programme : les pistes et les clips sont toujours là.

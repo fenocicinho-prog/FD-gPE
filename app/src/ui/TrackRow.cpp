@@ -248,6 +248,11 @@ TrackRow::TrackRow (EngineHost& h, te::AudioTrack& t, TimelineModel& m, Callback
     soloButton.onClick = [this] { track.setSolo (! track.isSolo (false));  refreshControls(); };
     deleteButton.onClick = [this] { if (callbacks.remove) callbacks.remove (track); };
 
+    keyboardButton.setVisible (host.isMidiTrack (track));
+    keyboardButton.setColour (juce::TextButton::buttonColourId, palette::panelHi);
+    keyboardButton.setColour (juce::TextButton::textColourOffId, palette::text);
+    keyboardButton.onClick = [this] { if (callbacks.openKeyboard) callbacks.openKeyboard (track); };
+
     volumeSlider.setSliderStyle (juce::Slider::LinearHorizontal);
     volumeSlider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
     volumeSlider.setRange (0.0, 1.0, 0.0);
@@ -270,7 +275,7 @@ TrackRow::TrackRow (EngineHost& h, te::AudioTrack& t, TimelineModel& m, Callback
 
     for (juce::Component* c : { (juce::Component*) &kindLabel, (juce::Component*) &nameLabel, (juce::Component*) &volLabel,
                                 (juce::Component*) &panLabel, (juce::Component*) &armButton, (juce::Component*) &muteButton,
-                                (juce::Component*) &soloButton, (juce::Component*) &deleteButton,
+                                (juce::Component*) &soloButton, (juce::Component*) &deleteButton, (juce::Component*) &keyboardButton,
                                 (juce::Component*) &volumeSlider, (juce::Component*) &panSlider, (juce::Component*) &pluginStrip })
         addAndMakeVisible (c);
 
@@ -308,6 +313,13 @@ void TrackRow::resized()
 
     header.removeFromTop (8);
     auto row2 = header.removeFromTop (28);
+
+    if (host.isMidiTrack (track))
+    {
+        keyboardButton.setBounds (row2.removeFromRight (76));
+        row2.removeFromRight (6);
+    }
+
     const int bw = (row2.getWidth() - 12) / 3;
     armButton.setBounds (row2.removeFromLeft (bw));
     row2.removeFromLeft (6);
