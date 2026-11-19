@@ -1027,7 +1027,13 @@ void MainComponent::openKeyboard (te::AudioTrack& track)
     options.componentToCentreAround = this;
     options.content.setOwned (new MidiKeyboardPanel (host, track));
 
-    keyboardWindow.reset (options.launchAsync());
+    // create() et non launchAsync() : launchAsync() passe la fenêtre en mode
+    // modal (enterModalState), ce qui bloque le transport principal et rend
+    // dangereux le reset() lorsqu'on rouvre le clavier.
+    auto* window = options.create();
+    window->setVisible (true);
+    window->toFront (false);
+    keyboardWindow.reset (window);
     transport.setStatus (tr ("Clavier : cliquez sur les touches pour jouer la piste."));
 }
 
@@ -1040,9 +1046,20 @@ void MainComponent::openPianoRoll (te::MidiClip& clip)
     auto editor = std::make_unique<PianoRollEditor> (host, clip);
     // On diffère la destruction : le bouton « Fermer » vit dans l'éditeur,
     // détruire ce dernier depuis son propre onClick serait un use-after-free.
-    editor->onClose = [this]
+    editor->onClose = [this,
+                       safeMain  = juce::Component::SafePointer<MainComponent> (this),
+                       safeEditor = juce::Component::SafePointer<PianoRollEditor> (editor.get())]
     {
-        juce::MessageManager::callAsync ([this] { inlinePianoRoll.reset(); });
+        juce::MessageManager::callAsync ([safeMain, safeEditor]
+        {
+            if (safeMain == nullptr || safeEditor == nullptr)
+                return;
+
+            // Une fermeture en attente ne doit pas fermer un piano roll ouvert
+            // entre-temps, ni toucher à un éditeur déjà détruit.
+            if (safeEditor.getComponent() == safeMain->inlinePianoRoll.get())
+                safeMain->inlinePianoRoll.reset();
+        });
     };
 
     int y = viewport.getY() + 8;

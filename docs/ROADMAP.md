@@ -46,11 +46,19 @@ constructeur échouait donc toujours, laissant `virtualKeyboard` nul et toutes l
 est désormais résolu tardivement, au premier appel, et configuré en monitorage permanent ; l'affectation
 à la piste jouée crée alors le noeud d'entrée live (vérifié : 0 cible à la 1ʳᵉ note, 1 cible ensuite).
 
+**M2.2 validée par l'utilisateur le 19/11.** Correctifs de fenêtres faits juste après :
+`DialogWindow::LaunchOptions::launchAsync()` rendait le clavier **modal** (JUCE `enterModalState`) — la
+fenêtre principale (Play, Rec...) était donc inaccessible, et la fermeture auto-détruisait la fenêtre
+que notre `unique_ptr` croyait encore posséder (double free à la 2ᵉ ouverture, crash avec Play). La
+fenêtre est maintenant créée avec `create()` puis rendue visible : elle est non modale et possédée par
+`keyboardWindow`. La fermeture différée du piano roll filtre désormais les anciennes demandes via
+`SafePointer`. Stress test Debug : 3 réouvertures + Play/Stop + notes répétées, zéro assertion.
+
 ## M2 : édition (rendre l'enregistrement utile)
 
 - [x] **M2.1 Forme d'onde** dans les clips audio (miniatures Tracktion). *Critère* : un clip enregistré montre sa
       forme d'onde, qui reste nette quand on zoome.
-- [ ] **M2.2 Édition des clips** : sélection, déplacement à la souris, coupe à la tête de lecture (touche S),
+- [x] **M2.2 Édition des clips** : sélection, déplacement à la souris, coupe à la tête de lecture (touche S),
       suppression, copier/coller, annuler/rétablir (Ctrl+Z, Ctrl+Y). *Critère* : on réorganise un
       enregistrement sans rien perdre, et Ctrl+Z revient en arrière. *Raccourcis S (coupe), Suppr et
       Ctrl+C/Ctrl+V ajoutés le 19/11 (collage à la tête sur la piste sélectionnée). Build local OK ;
