@@ -13,6 +13,156 @@ namespace fdgpe
 {
 namespace
 {
+/** Le LookAndFeel copie les couleurs de la palette à la construction : il faut
+    les réappliquer après chaque changement de thème, avant les repaints. */
+void refreshLookAndFeel()
+{
+    if (auto* lf = dynamic_cast<FdLookAndFeel*> (&juce::LookAndFeel::getDefaultLookAndFeel()))
+        lf->refreshPalette();
+}
+
+/** Petit panneau d'apparence : mode clair/sombre et couleur d'accent. Les
+    couleurs sont appliquées à chaud sur `palette::theme` (thread UI). */
+class ThemePanel final : public juce::Component
+{
+public:
+    explicit ThemePanel (EngineHost& h) : host (h)
+    {
+        const auto saved = host.loadTheme();
+        dark = saved.first;
+        accent = saved.second;
+
+        addAndMakeVisible (modeBox);
+        modeBox.addItem (tr ("CLAIR"), 1);
+        modeBox.addItem (tr ("SOMBRE"), 2);
+        modeBox.setSelectedId (dark ? 2 : 1, juce::dontSendNotification);
+        modeBox.onChange = [this]
+        {
+            dark = modeBox.getSelectedId() == 2;
+            applyAndRefresh (true, true);
+        };
+
+        const char* const names[] = { "ROUGE", "VERT", "BLEU" };
+
+        for (int i = 0; i < 3; ++i)
+        {
+            addAndMakeVisible (labels[i]);
+            labels[i].setText (tr (names[i]), juce::dontSendNotification);
+            labels[i].setFont (juce::Font (juce::FontOptions (10.0f, juce::Font::bold)));
+            labels[i].setColour (juce::Label::textColourId, palette::text);
+
+            addAndMakeVisible (sliders[i]);
+            sliders[i].setSliderStyle (juce::Slider::LinearHorizontal);
+            sliders[i].setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
+            sliders[i].setRange (0, 255, 1);
+            sliders[i].onValueChange = [this]
+            {
+                accent = juce::Colour::fromRGBA ((juce::uint8) sliders[0].getValue(),
+                                                 (juce::uint8) sliders[1].getValue(),
+                                                 (juce::uint8) sliders[2].getValue(), 255);
+                applyAndRefresh (false, false);
+            };
+            // Un seul rafraîchissement complet et une seule écriture disque par geste.
+            sliders[i].onDragEnd = [this] { applyAndRefresh (true, true); };
+        }
+
+        sliders[0].setValue ((double) accent.getRed(), juce::dontSendNotification);
+        sliders[1].setValue ((double) accent.getGreen(), juce::dontSendNotification);
+        sliders[2].setValue ((double) accent.getBlue(), juce::dontSendNotification);
+
+        addAndMakeVisible (closeButton);
+        closeButton.onClick = [this]
+        {
+            // Couvre aussi les changements au clavier (onDragEnd n'est alors pas appelé).
+            host.saveTheme (dark, accent);
+
+            if (auto* box = findParentComponentOfClass<juce::CallOutBox>())
+                box->dismiss();
+        };
+
+        // Le CallOutBox prend la taille de son contenu : sans setSize, rien ne s'affiche.
+        // 200 px de haut laissent une cible FERMER de 44 px sans chevaucher les sliders.
+        setSize (300, 200);
+    }
+
+    /** Clic hors du CallOutBox et Échap le ferment sans passer par `closeButton` :
+        on sauvegarde donc aussi à la destruction (les changements sont appliqués
+        immédiatement, il n'y a rien à annuler). */
+    ~ThemePanel() override
+    {
+        host.saveTheme (dark, accent);
+    }
+
+    void paint (juce::Graphics& g) override
+    {
+        g.fillAll (palette::panel);
+        g.setColour (palette::violet);
+        g.drawRect (getLocalBounds(), 1);
+
+        g.setColour (accent);
+        g.fillRoundedRectangle (8.0f, 8.0f, (float) getWidth() - 16.0f, 22.0f, 4.0f);
+        g.setColour (palette::violet);
+        g.drawRoundedRectangle (8.0f, 8.0f, (float) getWidth() - 16.0f, 22.0f, 4.0f, 1.5f);
+    }
+
+    void resized() override
+    {
+        modeBox.setBounds (8, 36, getWidth() - 16, 26);
+
+        for (int i = 0; i < 3; ++i)
+        {
+            const int y = 68 + i * 26; // 68 à 142 : trois lignes distinctes.
+            labels[i].setBounds (8, y, 58, 22);
+            sliders[i].setBounds (70, y, getWidth() - 78, 22);
+        }
+
+        closeButton.setBounds (getWidth() - 104, getHeight() - 50, 96, 44);
+    }
+
+private:
+    static void refreshTree (juce::Component& c)
+    {
+        c.repaint();
+
+        for (int i = 0; i < c.getNumChildComponents(); ++i)
+            if (auto* child = c.getChildComponent (i))
+                refreshTree (*child);
+    }
+
+    void applyAndRefresh (bool save, bool fullRefresh)
+    {
+        palette::theme.apply (dark, accent);
+        refreshLookAndFeel();
+
+        for (auto& label : labels)
+            label.setColour (juce::Label::textColourId, palette::text);
+
+        if (save)
+            host.saveTheme (dark, accent);
+
+        // Pendant le glissement, seul le panneau (pastille incluse) est redessiné.
+        if (fullRefresh)
+        {
+            if (auto* top = getTopLevelComponent())
+                refreshTree (*top);
+        }
+        else
+        {
+            repaint();
+        }
+    }
+
+    EngineHost& host;
+    bool dark = false;
+    juce::Colour accent { palette::blue };
+    juce::ComboBox modeBox;
+    juce::Label labels[3];
+    juce::Slider sliders[3];
+    juce::TextButton closeButton { tr ("FERMER") };
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ThemePanel)
+};
+
 int noteForKeyCode (int keyCode) noexcept
 {
     switch (keyCode)
@@ -181,6 +331,11 @@ MainComponent::MainComponent()
       ruler (host, model, [this] (double s) { seek (s); }),
       overlay (model)
 {
+    // Thème enregistré : appliqué avant la première peinture.
+    const auto savedTheme = host.loadTheme();
+    palette::theme.apply (savedTheme.first, savedTheme.second);
+    refreshLookAndFeel();
+
     model.changed = [this]
     {
         // Un défilement/zoom manuel prend la main sur le suivi automatique.
@@ -855,6 +1010,8 @@ void MainComponent::showProjectMenu()
     menu.addItem (7, tr ("Exporter avec options…"));
     menu.addSeparator();
     menu.addItem (8, tr ("Séquenceur de pas…"));
+    menu.addSeparator();
+    menu.addItem (9, tr ("Apparence…"));
 
     switch (menu.showAt (&projectButton, 0, projectButton.getHeight()))
     {
@@ -866,6 +1023,7 @@ void MainComponent::showProjectMenu()
         case 6: exportProject();       break;
         case 7: exportProjectAdvanced(); break;
         case 8: showStepSequencer();     break;
+        case 9: showThemePanel();        break;
         default: break;
     }
 }
@@ -1135,6 +1293,12 @@ void MainComponent::showPluginEditor (te::Plugin& plugin)
     auto* window = options.launchAsync();
     window->setSize (w, h);
     window->centreWithSize (w, h);
+}
+
+void MainComponent::showThemePanel()
+{
+    juce::CallOutBox::launchAsynchronously (std::make_unique<ThemePanel> (host),
+                                            projectButton.getBounds(), this);
 }
 
 void MainComponent::showStepSequencer()

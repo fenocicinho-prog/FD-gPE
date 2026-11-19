@@ -1182,6 +1182,27 @@ std::vector<te::Plugin::Ptr> EngineHost::getTrackPlugins (te::AudioTrack& track)
     return result;
 }
 
+void EngineHost::saveTheme (bool dark, const juce::Colour& accent)
+{
+    auto& props = engine.getPropertyStorage().getPropertiesFile();
+    props.setValue ("fdgpeThemeDark", dark ? "1" : "0");
+    props.setValue ("fdgpeAccent", accent.toString());
+    props.save();
+}
+
+std::pair<bool, juce::Colour> EngineHost::loadTheme() const
+{
+    auto& props = engine.getPropertyStorage().getPropertiesFile();
+    const bool dark = props.getValue ("fdgpeThemeDark", "0") == "1";
+    auto accent = juce::Colour::fromString (props.getValue ("fdgpeAccent", ""));
+
+    // Une préférence absente ou corrompue ne doit pas donner un accent invisible.
+    if (accent.isTransparent())
+        accent = juce::Colour (0xff0060df);
+
+    return { dark, accent };
+}
+
 te::Plugin::Ptr EngineHost::ensureDrumSampler (te::AudioTrack& track)
 {
     const auto plugins = getTrackPlugins (track);

@@ -204,6 +204,10 @@ public:
     void scanForPlugins (const std::function<void (const juce::String&)>& progress = {});
     void addPluginFolder (const juce::File&);
     juce::StringArray getPluginFolders() const;
+
+    // Apparence : préférences enregistrées hors du projet.
+    void saveTheme (bool dark, const juce::Colour& accent);
+    std::pair<bool, juce::Colour> loadTheme() const;
     std::vector<PluginInfo> getAvailablePlugins() const;
     std::vector<te::Plugin::Ptr> getTrackPlugins (te::AudioTrack&) const;
     te::Plugin::Ptr addPluginToTrack (te::AudioTrack&, const PluginInfo&);

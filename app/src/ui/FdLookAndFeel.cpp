@@ -10,6 +10,11 @@ namespace
 
 FdLookAndFeel::FdLookAndFeel()
 {
+    refreshPalette();
+}
+
+void FdLookAndFeel::refreshPalette()
+{
     using namespace palette;
 
     // Fenêtres

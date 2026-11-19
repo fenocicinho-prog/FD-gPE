@@ -13,6 +13,9 @@ class FdLookAndFeel final : public juce::LookAndFeel_V4
 public:
     FdLookAndFeel();
 
+    /** Réapplique les couleurs courantes de la palette après un changement de thème. */
+    void refreshPalette();
+
     void drawButtonBackground (juce::Graphics&, juce::Button&, const juce::Colour&,
                                bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override;
 

@@ -62,6 +62,7 @@ private:
     void addMarker();
     void showPluginEditor (te::Plugin&);
     void showStepSequencer();
+    void showThemePanel();
     void handleNoteKey (const juce::KeyPress&, bool down);
     void releaseHeldKeys();
     bool trackStillExists (te::AudioTrack*);

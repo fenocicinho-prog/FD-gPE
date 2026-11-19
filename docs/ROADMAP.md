@@ -94,15 +94,20 @@ fenêtre est maintenant créée avec `create()` puis rendue visible : elle est n
       Correctif du 20/11 (bis) : `resized()` remettait l'overlay au premier plan après l'ouverture du
       panneau, qui était donc invisible et interceptait les clics ; `toFront(false)` est rappelé après
       le placement du panneau. Sonde de superposition : « PANNEAU DEVANT ».
-- [ ] **M2.6 Sampler** : charger des WAV sur des pads, kits de batterie. *Critère* : on joue et on séquence ses
-      propres sons. *Code terminé le 20/11* : `EngineHost::ensureDrumSampler` remplace FourOsc par
+- [x] **M2.6 Sampler** : charger des WAV sur des pads, kits de batterie. *Critère* : on joue et on séquence ses
+      propres sons. **Validée par l'utilisateur le 20/11** (« ça marche »). *Code terminé le 20/11* : `EngineHost::ensureDrumSampler` remplace FourOsc par
       `SamplerPlugin` sur la piste Batterie, `loadSampleForNote` charge un WAV/AIFF par pad (une note MIDI
       par son), `StepSequencerPanel` ouvre le choix de fichier au clic sur le nom de l'instrument. Sondes
       OK : chargement sans erreur, nom `test_kick` conservé après réouverture du projet, projet nettoyé.
-      **En attente de validation utilisateur.** Limite documentée : le WAV est référencé par son chemin
-      absolu, ne pas le déplacer.
+      Limite documentée : le WAV est référencé par son chemin absolu, ne pas le déplacer.
 - [ ] **M2.7 Thèmes de couleurs** : `Palette` devient un thème modifiable (sombre, clair, choix de la couleur
       d'accent), enregistré dans les préférences. *Critère* : on change la couleur d'accent sans recompiler.
+      *Code terminé le 20/11* : `palette::theme` (références `Colour&` pour garder les 186 usages existants),
+      mode clair/sombre + accent R/V/B via **PROJET… → Apparence…**, préférences `fdgpeThemeDark`/`fdgpeAccent`.
+      Le LookAndFeel est rafraîchi avec le thème ; le violet des bordures/témoins dérive de l'accent. Sondes OK
+      (thème sombre, accent conservé, libellé du LookAndFeel aligné sur la palette), sondes retirées.
+      **En attente de validation utilisateur.** Limite connue : les libellés de certaines fenêtres déjà
+      ouvertes (piano roll, navigateur de plugins, mixeur) gardent leur couleur jusqu'à leur réouverture.
 
 ## M3 : plugins
 
