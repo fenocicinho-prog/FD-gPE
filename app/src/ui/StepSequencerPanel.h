@@ -68,10 +68,24 @@ public:
         {
             const int y = headerHeight + row * rowHeight;
 
-            g.setColour (palette::textDim);
-            g.setFont (juce::Font (juce::FontOptions (9.0f, juce::Font::plain)));
-            g.drawText (rowName (row), 6, y, labelWidth - 10, rowHeight,
+            // Deux lignes bien séparées dans les 26 px de la rangée : le nom
+            // de l'instrument reste sombre, le nom du son chargé passe en bleu.
+            g.setColour (palette::text);
+            g.setFont (juce::Font (juce::FontOptions (10.0f, juce::Font::bold)));
+            g.drawText (rowName (row), 7, y + 1, labelWidth - 12, 12,
                         juce::Justification::centredLeft);
+
+            // Le son chargé remplace l'invitation ; cliquer le nom ouvre le choix du WAV.
+            const auto& sample = sampleNames[(std::size_t) row];
+            juce::String shown = sample;
+
+            if (shown.length() > 14)
+                shown = shown.substring (0, 13) + juce::String::fromUTF8 ("…");
+
+            g.setColour (sample.isNotEmpty() ? palette::blue : palette::textDim);
+            g.setFont (juce::Font (juce::FontOptions (9.0f, juce::Font::plain)));
+            g.drawText (sample.isNotEmpty() ? shown : tr ("cliquer pour charger"),
+                        7, y + 13, labelWidth - 12, 12, juce::Justification::centredLeft);
 
             for (int step = 0; step < steps; ++step)
             {
@@ -87,7 +101,7 @@ public:
 
         g.setColour (palette::textDim);
         g.setFont (juce::Font (juce::FontOptions (9.0f, juce::Font::plain)));
-        g.drawText (tr ("Cliquez un pad pour ajouter ou retirer un pas."),
+        g.drawText (tr ("Pads = pas. Cliquez un nom pour charger un WAV."),
                     8, getHeight() - 26, getWidth() - 110, 22, juce::Justification::centredLeft);
     }
 
@@ -104,9 +118,21 @@ public:
             return;
 
         const int row = (e.y - headerHeight) / rowHeight;
+
+        if (row < 0 || row >= rows)
+            return;
+
+        // Toute la colonne du libellé est cliquable ; la grille commence à gridX.
+        // Pas de bande morte de 2 px qui activerait le premier pad par erreur.
+        if (e.x < gridX)
+        {
+            loadSampleForRow (row);
+            return;
+        }
+
         const int step = (e.x - gridX) / padStep;
 
-        if (row < 0 || row >= rows || step < 0 || step >= steps)
+        if (step < 0 || step >= steps)
             return;
 
         if (e.x - gridX - step * padStep > padSize)
@@ -161,6 +187,12 @@ public:
     {
         pattern = {};
         currentStep = -1;
+
+        auto* track = findDrumTrack();
+        for (int i = 0; i < rows; ++i)
+            sampleNames[(std::size_t) i] = track != nullptr
+                                               ? host.getSampleNameForNote (*track, pitches[i])
+                                               : juce::String {};
 
         auto* clip = findClip();
         if (clip == nullptr)
@@ -275,6 +307,38 @@ private:
         return clip;
     }
 
+    void loadSampleForRow (int row)
+    {
+        juce::FileChooser chooser (tr ("Charger un son pour ") + rowName (row),
+                                   juce::File::getSpecialLocation (juce::File::userMusicDirectory),
+                                   "*.wav;*.aif;*.aiff", true);
+
+        // On ne crée la piste/clip qu'après un choix effectif : annuler le
+        // dialogue ne doit pas modifier le projet.
+        if (! chooser.browseForFileToOpen())
+            return;
+
+        if (ensureClip() == nullptr)
+            return;
+
+        auto* track = findDrumTrack();
+        if (track == nullptr)
+            return;
+
+        const auto error = host.loadSampleForNote (*track, pitches[row], chooser.getResult());
+
+        if (error.isNotEmpty())
+        {
+            juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon,
+                                                    tr ("Sampler"), error);
+            return;
+        }
+
+        sampleNames[(std::size_t) row] = host.getSampleNameForNote (*track, pitches[row]);
+        audition (pitches[row]);
+        repaint (0, headerHeight + row * rowHeight, gridX, rowHeight);
+    }
+
     void audition (int pitch)
     {
         if (auto* track = findDrumTrack())
@@ -346,6 +410,7 @@ private:
 
     EngineHost& host;
     std::array<std::array<bool, steps>, rows> pattern {};
+    std::array<juce::String, rows> sampleNames {};
     int currentStep = -1;
     int pendingOffPitch = -1;
     bool wasPlaying = false;

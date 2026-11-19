@@ -1,6 +1,7 @@
 #include "EngineHost.h"
 
 #include "../ui/Palette.h"
+#include "../ui/Text.h"
 
 #include <algorithm>
 
@@ -1179,6 +1180,82 @@ std::vector<te::Plugin::Ptr> EngineHost::getTrackPlugins (te::AudioTrack& track)
             result.push_back (plugin);
 
     return result;
+}
+
+te::Plugin::Ptr EngineHost::ensureDrumSampler (te::AudioTrack& track)
+{
+    const auto plugins = getTrackPlugins (track);
+
+    for (auto& plugin : plugins)
+        if (dynamic_cast<te::SamplerPlugin*> (plugin.get()) != nullptr)
+            return plugin;
+
+    // On crée le sampler AVANT de retirer le synthé : si la création échoue,
+    // la piste reste jouable et l'état en mémoire reste conforme au projet.
+    auto sampler = edit->getPluginCache().createNewPlugin (te::SamplerPlugin::xmlTypeName, {});
+
+    if (sampler == nullptr)
+        return nullptr;
+
+    for (auto& plugin : plugins)
+        if (auto* synth = dynamic_cast<te::FourOscPlugin*> (plugin.get()))
+        {
+            removePluginFromTrack (track, *synth);
+            break;
+        }
+
+    track.pluginList.insertPlugin (sampler, 0, nullptr);
+    return sampler;
+}
+
+juce::String EngineHost::loadSampleForNote (te::AudioTrack& track, int midiNote, const juce::File& file)
+{
+    if (! file.existsAsFile())
+        return tr ("Fichier audio introuvable.");
+
+    auto samplerPtr = ensureDrumSampler (track);
+    auto* sampler = dynamic_cast<te::SamplerPlugin*> (samplerPtr.get());
+
+    if (sampler == nullptr)
+        return tr ("Impossible de créer le sampler.");
+
+    // Un seul son par note : on remplace l'ancien s'il existe déjà.
+    const int note = juce::jlimit (0, 127, midiNote);
+
+    for (int i = 0; i < sampler->getNumSounds(); ++i)
+        if (sampler->getKeyNote (i) == note)
+        {
+            sampler->removeSound (i);
+            break;
+        }
+
+    const auto error = sampler->addSound (file.getFullPathName(),
+                                          file.getFileNameWithoutExtension(),
+                                          0.0, 0.0, 0.0f);
+
+    if (error.isNotEmpty())
+    {
+        // Le sampler a peut-être déjà remplacé le synthé : on aligne le disque.
+        saveProject();
+        return error;
+    }
+
+    const int index = sampler->getNumSounds() - 1;
+    sampler->setSoundParams (index, note, note, note);
+    sampler->flushPendingUpdates();
+    saveProject();
+    return {};
+}
+
+juce::String EngineHost::getSampleNameForNote (te::AudioTrack& track, int midiNote) const
+{
+    for (auto& plugin : getTrackPlugins (track))
+        if (auto* sampler = dynamic_cast<te::SamplerPlugin*> (plugin.get()))
+            for (int i = 0; i < sampler->getNumSounds(); ++i)
+                if (sampler->getKeyNote (i) == midiNote)
+                    return sampler->getSoundName (i);
+
+    return {};
 }
 
 te::Plugin::Ptr EngineHost::addPluginToTrack (te::AudioTrack& track, const PluginInfo& info)

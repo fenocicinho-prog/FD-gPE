@@ -207,6 +207,12 @@ public:
     std::vector<PluginInfo> getAvailablePlugins() const;
     std::vector<te::Plugin::Ptr> getTrackPlugins (te::AudioTrack&) const;
     te::Plugin::Ptr addPluginToTrack (te::AudioTrack&, const PluginInfo&);
+
+    // Sampler des pads de batterie (tout se passe sur le thread UI).
+    te::Plugin::Ptr ensureDrumSampler (te::AudioTrack&);
+    juce::String loadSampleForNote (te::AudioTrack&, int midiNote, const juce::File&);
+    juce::String getSampleNameForNote (te::AudioTrack&, int midiNote) const;
+
     void removePluginFromTrack (te::AudioTrack&, te::Plugin&);
     void movePlugin (te::AudioTrack&, te::Plugin&, int delta);
     void setPluginEnabled (te::Plugin&, bool);

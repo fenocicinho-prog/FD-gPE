@@ -274,6 +274,7 @@ d'enregistrement, quand tu ajoutes ou supprimes une piste, et à la fermeture.
 | Couleur d'une piste | Clic droit sur la piste → **Changer la couleur…** |
 | Déplacer / redimensionner un clip | Glisser le clip ; saisir son bord droit pour changer sa durée |
 |Faire un beat de batterie|**PROJET… → Séquenceur de pas…** : cliquez les pads (6 instruments × 16 pas) ; la piste « Batterie » et son clip d'une mesure sont créés au premier clic. **LECTURE** écoute le motif, **EFFACER** vide la grille, **FERMER** replie le panneau|
+|Charger ses propres sons|Dans le séquenceur, cliquez le nom d'un instrument (GROSSE CAISSE, etc.) puis choisissez un WAV/AIFF : il remplace le synthé de la piste « Batterie » et est joué par les pads. Le son reste associé à la note MIDI du pad et est enregistré dans le projet.|
 |Éditer des notes MIDI|Double-clic sur un clip MIDI, ou **MENU → Piano roll** : l'éditeur s'ouvre intégré au niveau de la piste ; **FERMER** pour le replier|
 |Jouer une note MIDI|Bouton **CLAVIER** de la piste MIDI, ou touches de l'ordinateur : la note part vers la piste MIDI sélectionnée|
 |Revenir en arrière dans le temps|Faire défiler avec la molette sur la règle, ou cliquer sur la règle pour recentrer la tête de lecture|
@@ -337,6 +338,10 @@ Un clic sur **+** ajoute le plugin à la piste choisie.
   sur l'autre.
 
 ## Structure
+
+> **Sons du séquenceur** : les fichiers WAV/AIFF chargés restent à leur emplacement d'origine
+> (le projet ne fait que référencer leur chemin). Ne les déplacez pas et ne les supprimez pas,
+> sinon les pads concernés deviendront silencieux après réouverture du projet.
 
 ```
 CMakeLists.txt        projet racine (JUCE + Tracktion + app)

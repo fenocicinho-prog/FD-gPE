@@ -81,11 +81,11 @@ fenêtre est maintenant créée avec `create()` puis rendue visible : elle est n
       transaction d'undo (Ctrl+Z annule toute l'édition) et `MainComponent` rafraîchit le piano roll
       après Ctrl+Z/Ctrl+Y. **Validée par l'utilisateur le 19/11.** Risque résiduel connu : le bouton
       **ANNULER** de la TransportBar annule sans rafraîchir le piano roll ouvert.*
-- [ ] **M2.5 Séquenceur de pas** : grille de 16 pas avec pads, pour les beats. *Critère* : on fait un beat de
+- [x] **M2.5 Séquenceur de pas** : grille de 16 pas avec pads, pour les beats. *Critère* : on fait un beat de
       batterie en cliquant les pas. *Code terminé le 19/11* (`StepSequencerPanel.h` : 6 instruments × 16 pas,
       notes MIDI dans un clip d'une mesure sur la piste « Batterie », créée au premier clic). Test logique
-      pas/temps, `verifier.sh`, `build_local.sh` et sonde premier clic OK ; en attente de validation
-      utilisateur du son et du rendu. Limite connue : la grille déborde sous 480 px de large.
+      pas/temps, `verifier.sh`, `build_local.sh` et sondes OK. **Validée par l'utilisateur le 20/11**
+      (« ok, ça marche »). Limite connue : la grille déborde sous 480 px de large.
       Correctif du 20/11 : après suppression de la piste « Batterie », le panneau lisait son motif
       périmé au lieu du clip et un clic éteignait un pad au lieu de recréer la note ; `toggleStep`
       lit désormais l'état réel des notes et `updatePlayhead` éteint les pads orphelins. Sonde
@@ -95,7 +95,12 @@ fenêtre est maintenant créée avec `create()` puis rendue visible : elle est n
       panneau, qui était donc invisible et interceptait les clics ; `toFront(false)` est rappelé après
       le placement du panneau. Sonde de superposition : « PANNEAU DEVANT ».
 - [ ] **M2.6 Sampler** : charger des WAV sur des pads, kits de batterie. *Critère* : on joue et on séquence ses
-      propres sons.
+      propres sons. *Code terminé le 20/11* : `EngineHost::ensureDrumSampler` remplace FourOsc par
+      `SamplerPlugin` sur la piste Batterie, `loadSampleForNote` charge un WAV/AIFF par pad (une note MIDI
+      par son), `StepSequencerPanel` ouvre le choix de fichier au clic sur le nom de l'instrument. Sondes
+      OK : chargement sans erreur, nom `test_kick` conservé après réouverture du projet, projet nettoyé.
+      **En attente de validation utilisateur.** Limite documentée : le WAV est référencé par son chemin
+      absolu, ne pas le déplacer.
 - [ ] **M2.7 Thèmes de couleurs** : `Palette` devient un thème modifiable (sombre, clair, choix de la couleur
       d'accent), enregistré dans les préférences. *Critère* : on change la couleur d'accent sans recompiler.
 
