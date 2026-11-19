@@ -71,10 +71,13 @@ fenêtre est maintenant créée avec `create()` puis rendue visible : elle est n
       *Fait le 19/11 : deux poignées violettes en bas de la règle (7 px de tolérance, 13 px de haut),
       glissé avec magnétisme et garde-fou d'ordre (1/16 de temps minimum), bande de boucle discrète,
       curseur de redimensionnement. Clic ailleurs = tête de lecture. Build local OK, test logique 6 cas
-      sur les bornes ; validation utilisateur du geste en attente.*
-- [ ] **M2.4 Piano roll** : ouvrir un clip MIDI, ajouter, déplacer, redimensionner, supprimer des notes,
+      sur les bornes. **Validée par l'utilisateur le 19/11.**
+- [x] **M2.4 Piano roll** : ouvrir un clip MIDI, ajouter, déplacer, redimensionner, supprimer des notes,
       vélocité, quantification. *Critère* : on écrit un motif à la souris et on l'entend.
-      *Partiel : création, déplacement, suppression, vélocité et quantification faits ; redimensionnement d'une note existante manquant.*
+      *Fait le 19/11 : il manquait le redimensionnement. Bord droit de la note saisissable (poignée visible,
+      curseur, 7 px de prise), durée ajustée par pas de 1/4 avec minimum 0,25 temps et borne de fin de clip,
+      undo via `EngineHost::updateNote`. Test logique 6 cas, build local et smoke test Debug OK ;
+      validation utilisateur du geste en attente.*
 - [ ] **M2.5 Séquenceur de pas** : grille de 16 pas avec pads, pour les beats. *Critère* : on fait un beat de
       batterie en cliquant les pas.
 - [ ] **M2.6 Sampler** : charger des WAV sur des pads, kits de batterie. *Critère* : on joue et on séquence ses

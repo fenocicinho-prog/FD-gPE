@@ -1,5 +1,6 @@
 #include "PianoRollEditor.h"
 
+#include <cmath>
 #include <cstddef>
 
 #include "FdLookAndFeel.h"
@@ -8,6 +9,20 @@
 
 namespace fdgpe
 {
+namespace
+{
+    // Poignée au bord droit d'une note : 7 px de prise, durée minimale d'un 1/4 de temps.
+    constexpr int resizeGrabPx = 7;
+    constexpr double minNoteBeats = 0.25;
+    constexpr double hitToleranceBeats = 0.02;
+
+    // Largeur de la poignée : jamais plus de 7 px, toujours au moins 1 px,
+    // et au plus la moitié de la note pour laisser place au déplacement.
+    int handleGrabWidth (int leftX, int rightX) noexcept
+    {
+        return juce::jmin (resizeGrabPx, juce::jmax (1, (rightX - leftX) / 2));
+    }
+}
 //==============================================================================
 PianoRollEditor::Grid::Grid (PianoRollEditor& o, EngineHost& h, te::MidiClip& c)
     : owner (o), host (h), clip (c)
@@ -63,11 +78,31 @@ int PianoRollEditor::Grid::noteAt (int x, int y) const
     {
         const auto& n = notes[(std::size_t) i];
 
-        if (n.pitch == pitch && beat >= n.startBeat - 0.02 && beat <= n.startBeat + n.lengthBeats + 0.02)
+        if (n.pitch == pitch && beat >= n.startBeat - hitToleranceBeats
+            && beat <= n.startBeat + n.lengthBeats + hitToleranceBeats)
             return i;
     }
 
     return -1;
+}
+
+int PianoRollEditor::Grid::resizeHandleAt (int x, int y) const
+{
+    // La poignée doit appartenir à la note sous le curseur : sinon le survol et le clic
+    // ne désigneraient pas la même note quand deux notes se touchent sur la même hauteur.
+    const int index = noteAt (x, y);
+
+    if (index < 0)
+        return -1;
+
+    const auto& n = notes[(std::size_t) index];
+    const int rightX = keyboardWidth + juce::roundToInt ((n.startBeat + n.lengthBeats) * pixelsPerBeat);
+    const int leftX = keyboardWidth + juce::roundToInt (n.startBeat * pixelsPerBeat);
+    // Prise à l'intérieur de la note (au-delà, un clic crée une note).
+    const int grab = handleGrabWidth (leftX, rightX);
+    const int tolerance = juce::roundToInt (hitToleranceBeats * pixelsPerBeat);
+
+    return (x >= rightX - grab && x <= rightX + tolerance) ? index : -1;
 }
 
 void PianoRollEditor::Grid::paint (juce::Graphics& g)
@@ -129,6 +164,13 @@ void PianoRollEditor::Grid::paint (juce::Graphics& g)
         g.drawRoundedRectangle (r.reduced (0.5f), 3.0f, selected ? 2.0f : 1.0f);
         g.setColour (juce::Colours::white.withAlpha (0.65f));
         g.fillRect (r.getX() + 2.0f, r.getY() + 1.0f, juce::jmax (2.0f, r.getWidth() * velocity / 6.0f), 2.0f);
+
+        // Petite poignée au bord droit : sa largeur est exactement la zone de prise.
+        g.setColour (selected ? palette::blueBright : palette::blueSoft.withAlpha (0.55f));
+        const int rightX = keyboardWidth + juce::roundToInt ((n.startBeat + n.lengthBeats) * pixelsPerBeat);
+        const int leftX = keyboardWidth + juce::roundToInt (n.startBeat * pixelsPerBeat);
+        const float grab = (float) handleGrabWidth (leftX, rightX);
+        g.fillRect ((float) rightX - grab, r.getY() + 2.0f, grab, r.getHeight() - 4.0f);
     }
 
     // aperçu pendant le glisser
@@ -211,7 +253,8 @@ void PianoRollEditor::Grid::mouseDown (const juce::MouseEvent& e)
         selectedNote = existing;
         draft = notes[(size_t) existing];
         draftIndex = existing;
-        dragMode = DragMode::move;
+        // La poignée du bord droit est prioritaire sur le déplacement entier.
+        dragMode = resizeHandleAt (e.x, e.y) >= 0 ? DragMode::resize : DragMode::move;
         dragOrigin = e.getPosition();
     }
     else
@@ -241,11 +284,20 @@ void PianoRollEditor::Grid::mouseDrag (const juce::MouseEvent& e)
         draft.pitch = juce::jlimit (lowestNote, highestNote, draft.pitch + deltaPitch);
         dragOrigin = e.getPosition();
     }
+    else if (dragMode == DragMode::resize)
+    {
+        // Le début et la hauteur ne bougent pas : seulement la fin de la note.
+        const double end = std::round (beatAt (e.x) * 4.0) / 4.0;
+        // Pas de note au-delà de la grille visible (donc hors du clip).
+        const double maxBeat = juce::jmax (16.0, clip.getPosition().time.getLength().inSeconds()
+                                                   * host.getTempoBpm() / 60.0 + 4.0);
+        draft.lengthBeats = juce::jmax (minNoteBeats, juce::jmin (end, maxBeat) - draft.startBeat);
+    }
 
     repaint();
 }
 
-void PianoRollEditor::Grid::mouseUp (const juce::MouseEvent&)
+void PianoRollEditor::Grid::mouseUp (const juce::MouseEvent& e)
 {
     if (previewNote >= 0)
     {
@@ -255,11 +307,28 @@ void PianoRollEditor::Grid::mouseUp (const juce::MouseEvent&)
 
     if (dragMode == DragMode::create)
         host.addNote (clip, draft);
-    else if (dragMode == DragMode::move && draftIndex >= 0)
+    else if ((dragMode == DragMode::move || dragMode == DragMode::resize) && draftIndex >= 0)
         host.updateNote (clip, draftIndex, draft);
 
     dragMode = DragMode::none;
+    // Le relâchement peut arriver hors de la grille : on recalcule le curseur ici.
+    setMouseCursor (resizeHandleAt (e.x, e.y) >= 0 ? juce::MouseCursor::LeftRightResizeCursor
+                                                   : juce::MouseCursor::PointingHandCursor);
     refresh();
+}
+
+void PianoRollEditor::Grid::mouseMove (const juce::MouseEvent& e)
+{
+    const bool overHandle = e.x >= keyboardWidth && resizeHandleAt (e.x, e.y) >= 0;
+    setMouseCursor (overHandle ? juce::MouseCursor::LeftRightResizeCursor
+                               : juce::MouseCursor::PointingHandCursor);
+}
+
+void PianoRollEditor::Grid::mouseExit (const juce::MouseEvent&)
+{
+    // Ne pas changer le curseur pendant un glissé : JUCE garde la grille comme cible.
+    if (dragMode == DragMode::none)
+        setMouseCursor (juce::MouseCursor::PointingHandCursor);
 }
 
 void PianoRollEditor::Grid::mouseWheelMove (const juce::MouseEvent& e, const juce::MouseWheelDetails& wheel)
@@ -281,7 +350,7 @@ PianoRollEditor::PianoRollEditor (EngineHost& h, te::MidiClip& c)
     titleLabel.setFont (juce::Font (juce::FontOptions (18.0f, juce::Font::bold)));
     titleLabel.setColour (juce::Label::textColourId, palette::text);
 
-    hintLabel.setText (tr ("Clic glissé : créer une note · Glisser : déplacer · Clic droit : supprimer · Ctrl+molette : zoom"),
+    hintLabel.setText (tr ("Clic glissé : créer · Glisser : déplacer · Bord droit : ajuster la durée · Clic droit : supprimer · Ctrl+molette : zoom"),
                        juce::dontSendNotification);
     hintLabel.setFont (juce::Font (juce::FontOptions (11.0f, juce::Font::plain)));
     hintLabel.setColour (juce::Label::textColourId, palette::textDim);

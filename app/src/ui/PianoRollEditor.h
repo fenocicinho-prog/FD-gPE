@@ -40,6 +40,8 @@ private:
         void mouseDown (const juce::MouseEvent&) override;
         void mouseDrag (const juce::MouseEvent&) override;
         void mouseUp (const juce::MouseEvent&) override;
+        void mouseMove (const juce::MouseEvent&) override;
+        void mouseExit (const juce::MouseEvent&) override;
         void mouseWheelMove (const juce::MouseEvent&, const juce::MouseWheelDetails&) override;
 
         void refresh();
@@ -51,6 +53,7 @@ private:
         int pitchAt (int y) const;
         double beatAt (int x) const;
         int noteAt (int x, int y) const;
+        int resizeHandleAt (int x, int y) const;
         void drawKeyboard (juce::Graphics&);
 
         static constexpr int keyboardWidth = 58;
@@ -65,7 +68,7 @@ private:
         double pixelsPerBeat = 44.0;
         int selectedNote = -1;
 
-        enum class DragMode { none, create, move } dragMode = DragMode::none;
+        enum class DragMode { none, create, move, resize } dragMode = DragMode::none;
         NoteInfo draft;
         int draftIndex = -1;
         int previewNote = -1;

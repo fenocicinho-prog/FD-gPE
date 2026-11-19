@@ -296,6 +296,7 @@ la piste armée ; le clip définitif apparaît quand tu arrêtes.
 
 - Double-clic sur une case vide : créer une note.
 - Glisser une note : déplacer en hauteur et dans le temps.
+- Glisser le bord droit d'une note (petite poignée) : ajuster sa durée, sans déplacer son début.
 - Clic droit sur une note : la supprimer. **Suppr** supprime la note sélectionnée.
 - Quantification : 1/4, 1/8, 1/16, 1/32.
 - Ctrl + molette : zoom horizontal ; Maj + molette : défilement.
