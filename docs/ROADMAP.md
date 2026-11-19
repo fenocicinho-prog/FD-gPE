@@ -39,6 +39,13 @@ arrive même sur une piste vide, transport arrêté. Les devices MIDI propres au
 device clavier virtuel, en monitorage permanent, alimente les synthés. Fenêtres de piste fermées avant
 toute suppression (évite un use-after-free). À valider à l'écoute.
 
+Cause réelle du silence du clavier (trouvée le 19/11 par comparaison avec les exemples officiels Tracktion
+Engine/Studio et vérifiée par instrumentations) : `DeviceManager::createVirtualMidiDevice()` ne met à jour
+la liste des devices qu'après un rescan **asynchrone** (timer de 5 ms). La recherche du device dans le
+constructeur échouait donc toujours, laissant `virtualKeyboard` nul et toutes les notes perdues. Le device
+est désormais résolu tardivement, au premier appel, et configuré en monitorage permanent ; l'affectation
+à la piste jouée crée alors le noeud d'entrée live (vérifié : 0 cible à la 1ʳᵉ note, 1 cible ensuite).
+
 ## M2 : édition (rendre l'enregistrement utile)
 
 - [x] **M2.1 Forme d'onde** dans les clips audio (miniatures Tracktion). *Critère* : un clip enregistré montre sa

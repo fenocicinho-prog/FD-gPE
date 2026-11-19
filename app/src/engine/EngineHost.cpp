@@ -162,31 +162,18 @@ void EngineHost::setupInputDevices()
         midiIn->setEnabled (true);
     }
 
-    auto findKeyboard = [&]() -> std::shared_ptr<te::MidiInputDevice>
-    {
-        for (auto& d : dm.getMidiInDevices())
-            if (d->getName() == keyboardDeviceName)
-                return d;
+    bool keyboardExists = false;
 
-        return {};
-    };
+    for (auto& d : dm.getMidiInDevices())
+        if (d->getName() == keyboardDeviceName)
+            keyboardExists = true;
 
-    virtualKeyboard = findKeyboard();
-
-    if (virtualKeyboard == nullptr)
-    {
+    if (! keyboardExists)
         dm.createVirtualMidiDevice (keyboardDeviceName);
-        virtualKeyboard = findKeyboard();
-    }
 
-    if (virtualKeyboard != nullptr)
-    {
-        // « on » et non « automatic » : avec « automatic » Tracktion ne crée le
-        // noeud d'entrée que si la piste est armée, donc le clavier reste muet
-        // quand on joue sans enregistrer.
-        virtualKeyboard->setMonitorMode (te::InputDevice::MonitorMode::on);
-        virtualKeyboard->setEnabled (true);
-    }
+    // createVirtualMidiDevice() ne met à jour la liste qu'après un rescan
+    // asynchrone (timer de 5 ms de DeviceManager). keyboardDevice() retrouvera
+    // le device et le configurera au premier appel, une fois la liste à jour.
 }
 
 //==============================================================================
@@ -623,9 +610,38 @@ void EngineHost::undo()             { edit->undo(); }
 void EngineHost::redo()             { edit->redo(); }
 
 //==============================================================================
+te::MidiInputDevice* EngineHost::keyboardDevice()
+{
+    if (virtualKeyboard == nullptr)
+    {
+        for (auto& device : engine.getDeviceManager().getMidiInDevices())
+        {
+            if (device->getName() != keyboardDeviceName)
+                continue;
+
+            virtualKeyboard = device;
+            break;
+        }
+    }
+
+    if (virtualKeyboard != nullptr)
+    {
+        // « on » et non « automatic » : avec « automatic » Tracktion ne crée le
+        // noeud d'entrée que si la piste est armée, donc le clavier reste muet
+        // quand on joue sans enregistrer.
+        if (virtualKeyboard->getMonitorMode() != te::InputDevice::MonitorMode::on)
+            virtualKeyboard->setMonitorMode (te::InputDevice::MonitorMode::on);
+
+        if (! virtualKeyboard->isEnabled())
+            virtualKeyboard->setEnabled (true);
+    }
+
+    return virtualKeyboard.get();
+}
+
 void EngineHost::sendMidi (const juce::MidiMessage& message)
 {
-    if (auto* device = dynamic_cast<te::VirtualMidiInputDevice*> (virtualKeyboard.get()))
+    if (auto* device = dynamic_cast<te::VirtualMidiInputDevice*> (keyboardDevice()))
         device->handleIncomingMidiMessage (message, te::MPESourceID());
 }
 
@@ -641,24 +657,26 @@ void EngineHost::sendNoteOff (int midiNote)
 
 void EngineHost::sendMidiToTrack (te::AudioTrack& track, const juce::MidiMessage& message)
 {
+    auto* device = keyboardDevice();
+
+    if (device == nullptr)
+        return;
+
     // Le device clavier global est le seul dont les notes atteignent la chaîne
     // de plugins d'une piste (les devices propres aux pistes servent au routage
     // entre pistes). On l'affecte à la piste jouée pour créer le noeud d'entrée
     // live, même si la piste est vide et le transport arrêté.
-    if (virtualKeyboard == nullptr)
-        return;
-
     if (auto* context = edit->getCurrentPlaybackContext())
     {
-        if (auto* instance = context->getInputFor (virtualKeyboard.get()))
+        if (auto* instance = context->getInputFor (device))
         {
             if (! te::isOnTargetTrack (*instance, track, 0))
                 [[ maybe_unused ]] auto result = instance->setTarget (track.itemID, true, nullptr, 0);
         }
     }
 
-    if (auto* device = dynamic_cast<te::VirtualMidiInputDevice*> (virtualKeyboard.get()))
-        device->handleIncomingMidiMessage (message, te::MPESourceID());
+    if (auto* virtualDevice = dynamic_cast<te::VirtualMidiInputDevice*> (device))
+        virtualDevice->handleIncomingMidiMessage (message, te::MPESourceID());
 }
 
 void EngineHost::sendNoteOn (te::AudioTrack& track, int midiNote, float velocity)

@@ -230,6 +230,7 @@ private:
     void tagMissingTrackKinds();
     te::AudioTrack* addTrackOfKind (bool midi);
     int countTracksOfKind (bool midi);
+    te::MidiInputDevice* keyboardDevice();
     void sendMidi (const juce::MidiMessage&);
     void applyQuantisation (te::MidiClip&);
     juce::PluginDescription findDescription (const PluginInfo&) const;
