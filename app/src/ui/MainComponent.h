@@ -8,6 +8,7 @@
 
 #include "../engine/EngineHost.h"
 #include "TimelineModel.h"
+#include "PianoRollEditor.h"
 #include "TimelineRuler.h"
 #include "TrackRow.h"
 #include "TransportBar.h"
@@ -59,6 +60,7 @@ private:
     void handleNoteKey (const juce::KeyPress&, bool down);
     void releaseHeldKeys();
     te::AudioTrack* getFocusedTrack();
+    te::AudioTrack* getFocusedMidiTrack();
     te::MidiClip* getFocusedMidiClip();
 
     EngineHost host;
@@ -77,8 +79,12 @@ private:
     juce::MidiKeyboardComponent keyboard;
 
     std::unique_ptr<juce::DialogWindow> audioSettingsWindow;
+    std::unique_ptr<PianoRollEditor> inlinePianoRoll;
     std::vector<int> activeNoteKeys;
     int tick = 0;
+    bool followPlayhead = true;   // le suivi automatique s'arrête dès que l'utilisateur défile
+    bool wasPlaying = false;
+    bool wasRecording = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

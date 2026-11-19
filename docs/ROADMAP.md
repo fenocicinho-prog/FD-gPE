@@ -21,6 +21,12 @@ Compilation locale réussie avec `bash scripts/build_local.sh` (1 cœur, priorit
 Test visuel M2.1 fait : forme d'onde visible dans le clip audio (capture : `/tmp/opencode/capture_m21_finale.png`).
 Le son, le matériel et le zoom à la souris restent à valider par l'utilisateur.
 
+Correctifs du 19/11 (à valider par l'utilisateur) : l'arrêt de l'enregistrement ne jette plus le fichier
+enregistré (`TransportControl::stop(false, false)`) ; le suivi de la tête de lecture peut être coupé par
+un défilement manuel et `seek()` recentre la vue pour revenir en arrière ; les pistes MIDI reçoivent
+les notes du clavier à l'écran via leur device MIDI propre, avec réparation des projets sans synthé ;
+le piano roll s'ouvre intégré au niveau de la piste au double-clic sur un clip MIDI.
+
 ## M2 : édition (rendre l'enregistrement utile)
 
 - [x] **M2.1 Forme d'onde** dans les clips audio (miniatures Tracktion). *Critère* : un clip enregistré montre sa

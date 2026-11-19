@@ -182,7 +182,12 @@ MainComponent::MainComponent()
       overlay (model),
       keyboard (keyboardState, juce::MidiKeyboardComponent::horizontalKeyboard)
 {
-    model.changed = [this] { viewChanged(); };
+    model.changed = [this]
+    {
+        // Un défilement/zoom manuel prend la main sur le suivi automatique.
+        followPlayhead = false;
+        viewChanged();
+    };
     transport.setSnapLabel (tr ("SNAP 1/4"));
 
     addAndMakeVisible (transport);
@@ -484,7 +489,9 @@ void MainComponent::releaseHeldKeys()
 void MainComponent::rebuildRows()
 {
     // Les lignes sont détruites AVANT toute suppression de piste (leurs vu-mètres
-    // sont branchés sur les pistes).
+    // sont branchés sur les pistes). L'éditeur intégré référence un clip : on le
+    // ferme aussi avant de reconstruire les lignes.
+    inlinePianoRoll.reset();
     rows.clear();
 
     TrackRow::Callbacks callbacks;
@@ -602,6 +609,21 @@ te::AudioTrack* MainComponent::getFocusedTrack()
     return nullptr;
 }
 
+te::AudioTrack* MainComponent::getFocusedMidiTrack()
+{
+    // Priorité à la piste MIDI dont un clip est sélectionné, puis à la première
+    // piste MIDI : c'est la cible des notes jouées au clavier.
+    for (auto& row : rows)
+        if (host.isMidiTrack (row->getTrack()) && row->getSelectedClip() != nullptr)
+            return &row->getTrack();
+
+    for (auto& row : rows)
+        if (host.isMidiTrack (row->getTrack()))
+            return &row->getTrack();
+
+    return nullptr;
+}
+
 te::MidiClip* MainComponent::getFocusedMidiClip()
 {
     for (auto& row : rows)
@@ -627,12 +649,24 @@ te::MidiClip* MainComponent::getFocusedMidiClip()
 void MainComponent::seek (double seconds)
 {
     host.setPositionSeconds (seconds);
+    followPlayhead = true;
+
+    // Si la cible est hors écran, on recentre la vue dessus : cela permet
+    // de revenir en arrière après que la tête a dépassé la zone visible.
+    const double visible = (double) juce::jmax (1, ruler.getWidth()) / model.pixelsPerSecond;
+
+    if (seconds < model.startSeconds || seconds > model.startSeconds + visible)
+        model.startSeconds = juce::jmax (0.0, seconds - visible * 0.25);
+
+    viewChanged();
     overlay.setPosition (host.getPositionSeconds());
     transport.refresh();
 }
 
 void MainComponent::startRecording()
 {
+    followPlayhead = true;
+
     if (! host.anyTrackArmed())
     {
         juce::AlertWindow::showMessageBoxAsync (
@@ -917,7 +951,44 @@ void MainComponent::openPianoRoll()
 
 void MainComponent::openPianoRoll (te::MidiClip& clip)
 {
-    PianoRollEditor::show (host, clip);
+    // Éditeur intégré, placé au niveau de la piste MIDI : plus de fenêtre
+    // séparée « en bas ». Une seule instance à la fois.
+    inlinePianoRoll.reset();
+
+    auto editor = std::make_unique<PianoRollEditor> (host, clip);
+    // On diffère la destruction : le bouton « Fermer » vit dans l'éditeur,
+    // détruire ce dernier depuis son propre onClick serait un use-after-free.
+    editor->onClose = [this]
+    {
+        juce::MessageManager::callAsync ([this] { inlinePianoRoll.reset(); });
+    };
+
+    int y = viewport.getY() + 8;
+
+    for (std::size_t i = 0; i < rows.size(); ++i)
+    {
+        bool found = false;
+
+        for (auto* c : host.getMidiClips (rows[i]->getTrack()))
+            if (c == &clip)
+                found = true;
+
+        if (found)
+        {
+            y = viewport.getY() + (int) i * TrackRow::rowHeight;
+            break;
+        }
+    }
+
+    const int h = juce::jmin (640, juce::jmax (240, viewport.getHeight() - 8));
+    const int w = juce::jmin (900, juce::jmax (360, getWidth() - 24));
+
+    editor->setBounds (juce::jmax (0, getWidth() - w - 12),
+                       juce::jlimit (viewport.getY(), juce::jmax (viewport.getY(), viewport.getBottom() - h), y),
+                       w, h);
+
+    inlinePianoRoll = std::move (editor);
+    addAndMakeVisible (inlinePianoRoll.get());
     transport.setStatus (tr ("Piano roll : double-clic pour créer une note, glisser pour déplacer, clic droit pour supprimer."));
 }
 
@@ -1078,12 +1149,18 @@ void MainComponent::addMarker()
 //==============================================================================
 void MainComponent::handleNoteOn (juce::MidiKeyboardState*, int, int midiNoteNumber, float velocity)
 {
-    host.sendNoteOn (midiNoteNumber, velocity);
+    if (auto* track = getFocusedMidiTrack())
+        host.sendNoteOn (*track, midiNoteNumber, velocity);
+    else
+        host.sendNoteOn (midiNoteNumber, velocity);
 }
 
 void MainComponent::handleNoteOff (juce::MidiKeyboardState*, int, int midiNoteNumber, float)
 {
-    host.sendNoteOff (midiNoteNumber);
+    if (auto* track = getFocusedMidiTrack())
+        host.sendNoteOff (*track, midiNoteNumber);
+    else
+        host.sendNoteOff (midiNoteNumber);
 }
 
 //==============================================================================
@@ -1094,10 +1171,23 @@ void MainComponent::timerCallback()
     releaseHeldKeys();
 
     const bool playing = host.isPlaying() || host.isRecording();
+    const bool recording = host.isRecording();
     const double position = host.getPositionSeconds();
 
-    // la vue suit la tête de lecture
-    if (playing)
+    // Un nouveau transport reprend le suivi ; un défilement manuel le coupe.
+    if (playing && ! wasPlaying)
+        followPlayhead = true;
+
+    // À l'arrêt du REC, on repeint les pistes : c'est là que le clip
+    // enregistré devient visible (paintLane relit track.getClips()).
+    if (wasRecording && ! recording)
+        viewChanged();
+
+    wasPlaying = playing;
+    wasRecording = recording;
+
+    // la vue suit la tête de lecture (sauf si l'utilisateur a défilé à la main)
+    if (playing && followPlayhead)
     {
         const double visible = (double) ruler.getWidth() / model.pixelsPerSecond;
 

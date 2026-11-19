@@ -27,6 +27,9 @@ public:
 
     static void show (EngineHost&, te::MidiClip&);
 
+    // Fermeture quand l'éditeur est intégré dans la fenêtre principale.
+    std::function<void()> onClose;
+
 private:
     class Grid final : public juce::Component
     {

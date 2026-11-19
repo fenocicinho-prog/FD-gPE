@@ -273,7 +273,9 @@ d'enregistrement, quand tu ajoutes ou supprimes une piste, et à la fermeture.
 | Ajouter un clip MIDI | Double-clic dans une piste MIDI, ou clic droit → **Nouveau clip MIDI ici** |
 | Couleur d'une piste | Clic droit sur la piste → **Changer la couleur…** |
 | Déplacer / redimensionner un clip | Glisser le clip ; saisir son bord droit pour changer sa durée |
-|Éditer des notes MIDI|Double-clic sur un clip MIDI, ou bouton **PIANO ROLL**|
+|Éditer des notes MIDI|Double-clic sur un clip MIDI, ou bouton **PIANO ROLL** : l'éditeur s'ouvre intégré au niveau de la piste ; **FERMER** pour le replier|
+|Jouer une note MIDI|Clavier à l'écran ou touches de l'ordinateur : la note part vers la piste MIDI sélectionnée|
+|Revenir en arrière dans le temps|Faire défiler avec la molette sur la règle, ou cliquer sur la règle pour recentrer la tête de lecture|
 |Créer un clip MIDI vide|**PIANO ROLL** sans clip sélectionné : un clip de 4 mesures est créé à la tête de lecture sur la première piste MIDI|
 |Gérer le tempo et les signatures|**TEMPO** : carte de tempo, ajout/suppression de points, 4/4, 3/4, 6/8, etc.|
 |Ajouter un marqueur|**+ MARQUEUR**, ou touche **M**|

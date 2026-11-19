@@ -93,6 +93,26 @@ void EngineHost::prepareEdit()
 
             track->state.setProperty (kindId, midi ? "midi" : "audio", nullptr);
         }
+
+        if (isMidiTrack (*track))
+        {
+            // Le device MIDI propre à la piste doit être actif pour que les
+            // notes du clavier à l'écran atteignent le synthé de cette piste.
+            if (auto* midiDevice = dynamic_cast<te::VirtualMidiInputDevice*> (&track->getMidiInputDevice()))
+                midiDevice->setEnabled (true);
+
+            bool hasSynth = false;
+
+            for (auto* plugin : track->pluginList.getPlugins())
+                if (plugin != nullptr && plugin->isSynth())
+                    hasSynth = true;
+
+            // Répare les projets sauvés sans instrument : une piste MIDI muette
+            // est une piste sans synthé (ou avec un synthé désactivé).
+            if (! hasSynth)
+                if (auto synth = edit->getPluginCache().createNewPlugin (te::FourOscPlugin::xmlTypeName, {}))
+                    track->pluginList.insertPlugin (synth, 0, nullptr);
+        }
     }
 }
 
@@ -291,6 +311,9 @@ te::AudioTrack* EngineHost::addTrackOfKind (bool midi)
     {
         if (auto synth = edit->getPluginCache().createNewPlugin (te::FourOscPlugin::xmlTypeName, {}))
             track->pluginList.insertPlugin (synth, 0, nullptr);
+
+        if (auto* midiDevice = dynamic_cast<te::VirtualMidiInputDevice*> (&track->getMidiInputDevice()))
+            midiDevice->setEnabled (true);
     }
 
     return track;
@@ -443,7 +466,8 @@ void EngineHost::togglePlay()
 
     if (transport.isRecording())
     {
-        transport.stop (true, false);
+        // false = on garde les fichiers enregistrés (paramètre discardRecordings).
+        transport.stop (false, false);
         saveProject();
     }
     else if (transport.isPlaying())
@@ -462,7 +486,8 @@ void EngineHost::toggleRecord()
 
     if (transport.isRecording())
     {
-        transport.stop (true, false);
+        // false = on garde les fichiers enregistrés (paramètre discardRecordings).
+        transport.stop (false, false);
         saveProject();
     }
     else
@@ -608,6 +633,22 @@ void EngineHost::sendNoteOn (int midiNote, float velocity)
 void EngineHost::sendNoteOff (int midiNote)
 {
     sendMidi (juce::MidiMessage::noteOff (1, midiNote));
+}
+
+void EngineHost::sendMidiToTrack (te::AudioTrack& track, const juce::MidiMessage& message)
+{
+    if (auto* device = dynamic_cast<te::VirtualMidiInputDevice*> (&track.getMidiInputDevice()))
+        device->handleIncomingMidiMessage (message, te::MPESourceID());
+}
+
+void EngineHost::sendNoteOn (te::AudioTrack& track, int midiNote, float velocity)
+{
+    sendMidiToTrack (track, juce::MidiMessage::noteOn (1, midiNote, velocity));
+}
+
+void EngineHost::sendNoteOff (te::AudioTrack& track, int midiNote)
+{
+    sendMidiToTrack (track, juce::MidiMessage::noteOff (1, midiNote));
 }
 
 //==============================================================================

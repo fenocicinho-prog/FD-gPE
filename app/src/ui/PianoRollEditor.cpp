@@ -314,7 +314,9 @@ PianoRollEditor::PianoRollEditor (EngineHost& h, te::MidiClip& c)
     {
         host.saveProject();
 
-        if (auto* window = findParentComponentOfClass<juce::DialogWindow>())
+        if (onClose)
+            onClose();
+        else if (auto* window = findParentComponentOfClass<juce::DialogWindow>())
             window->closeButtonPressed();
     };
 

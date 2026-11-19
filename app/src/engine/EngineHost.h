@@ -152,6 +152,10 @@ public:
     // Clavier virtuel
     void sendNoteOn (int midiNote, float velocity);
     void sendNoteOff (int midiNote);
+    // Routage vers une piste MIDI précise (clavier à l'écran / touches).
+    void sendMidiToTrack (te::AudioTrack&, const juce::MidiMessage&);
+    void sendNoteOn (te::AudioTrack&, int midiNote, float velocity);
+    void sendNoteOff (te::AudioTrack&, int midiNote);
 
     //==============================================================================
     // Carte de tempo
