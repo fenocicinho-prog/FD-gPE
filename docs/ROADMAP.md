@@ -27,7 +27,9 @@ Le son, le matériel et le zoom à la souris restent à valider par l'utilisateu
       forme d'onde, qui reste nette quand on zoome.
 - [ ] **M2.2 Édition des clips** : sélection, déplacement à la souris, coupe à la tête de lecture (touche S),
       suppression, copier/coller, annuler/rétablir (Ctrl+Z, Ctrl+Y). *Critère* : on réorganise un
-      enregistrement sans rien perdre, et Ctrl+Z revient en arrière. *Partiel : copier/coller remplacé par duplication.*
+      enregistrement sans rien perdre, et Ctrl+Z revient en arrière. *Raccourcis S (coupe), Suppr et
+      Ctrl+C/Ctrl+V ajoutés le 19/11 (collage à la tête sur la piste sélectionnée). Build local OK ;
+      validation utilisateur en attente.*
 - [ ] **M2.3 Grille et boucle** : magnétisme sur la grille (mesures, temps), début et fin de boucle réglables
       sur la règle. *Critère* : un clip déplacé « accroche » les temps ; la boucle se règle à la souris.
       *Partiel : magnétisme fait, bornes de boucle pas encore réglables à la souris.*

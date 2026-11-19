@@ -40,6 +40,15 @@ void clearClipSelection (const std::vector<std::unique_ptr<TrackRow>>& rows)
         row->selectClip (nullptr);
 }
 
+te::Clip* getSelectedClip (const std::vector<std::unique_ptr<TrackRow>>& rows)
+{
+    for (auto& row : rows)
+        if (auto* clip = row->getSelectedClip())
+            return clip;
+
+    return nullptr;
+}
+
 /** Petit mixeur modeless : une colonne par piste avec volume, panoramique et MUTE. */
 class MixerPanel final : public juce::Component
 {
@@ -326,6 +335,26 @@ bool MainComponent::keyPressed (const juce::KeyPress& key)
             case 'D':
                 duplicateTrack();
                 return true;
+            case 'C':
+                if (auto* clip = getSelectedClip (rows))
+                {
+                    host.copyClip (*clip);
+                    transport.setStatus (tr ("Clip copié."));
+                }
+                return true;
+            case 'V':
+                if (auto* track = getFocusedTrack())
+                {
+                    clearClipSelection (rows);
+
+                    if (host.pasteClip (*track, host.getPositionSeconds()))
+                    {
+                        host.saveProject();
+                        viewChanged();
+                        transport.setStatus (tr ("Clip collé à la tête de lecture."));
+                    }
+                }
+                return true;
             case 'Z':
                 if (mods.isShiftDown()) host.redo();
                 else                   host.undo();
@@ -347,8 +376,32 @@ bool MainComponent::keyPressed (const juce::KeyPress& key)
 
     if (! mods.isCommandDown() && ! mods.isAltDown() && ! mods.isCtrlDown())
     {
+        if (key == juce::KeyPress::deleteKey || key == juce::KeyPress::backspaceKey)
+        {
+            if (auto* clip = getSelectedClip (rows))
+            {
+                clearClipSelection (rows);
+                host.deleteClip (*clip);
+                host.saveProject();
+                viewChanged();
+                transport.setStatus (tr ("Clip supprimé."));
+                return true;
+            }
+        }
+
         switch (code)
         {
+            case 'S':
+                if (auto* clip = getSelectedClip (rows))
+                {
+                    clearClipSelection (rows);
+                    host.splitClip (*clip, host.getPositionSeconds());
+                    host.saveProject();
+                    viewChanged();
+                    transport.setStatus (tr ("Clip coupé à la tête de lecture."));
+                    return true;
+                }
+                break;
             case 'P':
                 PluginBrowser::show (host, getFocusedTrack());
                 return true;

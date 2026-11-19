@@ -189,6 +189,10 @@ public:
     void duplicateClip (te::Clip&);
     void moveClip (te::Clip&, double deltaSeconds);
 
+    // Édition M2.2 : presse-papiers de clips (UI thread uniquement).
+    void copyClip (te::Clip&);
+    bool pasteClip (te::AudioTrack&, double seconds);
+
     //==============================================================================
     // Plugins : scan simple et gestion sur les pistes
     void scanForPlugins (const std::function<void (const juce::String&)>& progress = {});

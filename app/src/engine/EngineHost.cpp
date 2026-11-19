@@ -891,12 +891,15 @@ void EngineHost::splitClip (te::Clip& clip, double seconds)
 
 void EngineHost::deleteClip (te::Clip& clip)
 {
+    edit->getUndoManager().beginNewTransaction();
     clip.removeFromParent();
-    saveProject();
+    // La sauvegarde est faite par l'appelant (une seule fois par action).
 }
 
 void EngineHost::duplicateClip (te::Clip& clip)
 {
+    edit->getUndoManager().beginNewTransaction();
+
     auto* track = dynamic_cast<te::AudioTrack*> (clip.getParent());
 
     if (track == nullptr)
@@ -922,6 +925,39 @@ void EngineHost::moveClip (te::Clip& clip, double deltaSeconds)
     position.time = te::TimeRange (te::TimePosition::fromSeconds (position.time.getStart().inSeconds() + deltaSeconds),
                                    position.time.getLength());
     clip.setPosition (position);
+}
+
+void EngineHost::copyClip (te::Clip& clip)
+{
+    te::SelectableList selected;
+    selected.add (&clip);
+
+    auto content = std::make_unique<te::Clipboard::Clips>();
+    content->addSelectedClips (selected, te::Edit::getMaximumEditTimeRange(),
+                               te::Clipboard::Clips::AutomationLocked::no);
+    te::Clipboard::getInstance()->setContent (std::move (content));
+}
+
+bool EngineHost::pasteClip (te::AudioTrack& track, double seconds)
+{
+    const auto* content = te::Clipboard::getInstance()->getContentWithType<te::Clipboard::Clips>();
+
+    if (content == nullptr || content->clips.empty())
+        return false;
+
+    auto& undo = edit->getUndoManager();
+    undo.beginNewTransaction();
+
+    te::EditInsertPoint insertPoint (*edit);
+    te::Clipboard::ContentType::EditPastingOptions options (*edit, insertPoint);
+    options.startTrack = &track;
+    options.startTime = te::TimePosition::fromSeconds (seconds);
+
+    const bool ok = content->pasteIntoEdit (options);
+
+    // Termine la transaction : Ctrl+Z annule exactement ce collage.
+    undo.beginNewTransaction();
+    return ok;
 }
 
 //==============================================================================

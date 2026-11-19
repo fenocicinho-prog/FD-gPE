@@ -280,7 +280,8 @@ d'enregistrement, quand tu ajoutes ou supprimes une piste, et à la fermeture.
 |Aller au marqueur suivant / précédent|**M>** / **<M**|
 |Ouvrir le navigateur de plugins|**PLUGINS**, touche **P**, ou tuile **+** sur une piste|
 |Éditer / activer / retirer un plugin|Tuile du plugin dans l'en-tête de piste : clic = éditeur, point = ON/OFF, **x** = retrait|
-|Couper / dupliquer / supprimer un clip|Clic droit sur le clip|
+|Couper / dupliquer / supprimer un clip|Clic droit sur le clip ; ou touche **S** (coupe à la tête de lecture), **Suppr**, **Ctrl+D**|
+|Copier / coller un clip|**Ctrl+C** puis **Ctrl+V** : collage à la tête de lecture sur la piste sélectionnée|
 |Exporter le mixage|**EXPORTER WAV**, ou **Ctrl+E**|
 |Annuler / rétablir|**ANNULER** / **RÉTABLIR**, **Ctrl+Z** / **Ctrl+Maj+Z** / **Ctrl+Y**|
 |Enregistrer le projet|**Ctrl+S** (également automatique après ajout/suppression de piste ou de clip)|
