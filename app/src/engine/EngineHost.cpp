@@ -78,8 +78,6 @@ EngineHost::EngineHost()
 
 void EngineHost::prepareEdit()
 {
-    edit->getTransport().ensureContextAllocated();
-
     for (auto* track : te::getAudioTracks (*edit))
     {
         if (track->state.getProperty (kindId).toString().isEmpty())
@@ -96,10 +94,11 @@ void EngineHost::prepareEdit()
 
         if (isMidiTrack (*track))
         {
-            // Le device MIDI propre à la piste doit être actif pour que les
-            // notes du clavier à l'écran atteignent le synthé de cette piste.
+            // Les devices MIDI propres aux pistes sont réservés au routage entre
+            // pistes. Les activer crée des TrackMidiInputDeviceNode en doublon
+            // (assertion NodePlayerUtilities + plantage) : on les désactive.
             if (auto* midiDevice = dynamic_cast<te::VirtualMidiInputDevice*> (&track->getMidiInputDevice()))
-                midiDevice->setEnabled (true);
+                midiDevice->setEnabled (false);
 
             bool hasSynth = false;
 
@@ -114,6 +113,10 @@ void EngineHost::prepareEdit()
                     track->pluginList.insertPlugin (synth, 0, nullptr);
         }
     }
+
+    // Les devices de piste sont désactivés avant la première construction du
+    // graphe : sinon Tracktion crée des TrackMidiInputDeviceNode en doublon.
+    edit->getTransport().ensureContextAllocated();
 }
 
 void EngineHost::tagMissingTrackKinds()
@@ -178,7 +181,10 @@ void EngineHost::setupInputDevices()
 
     if (virtualKeyboard != nullptr)
     {
-        virtualKeyboard->setMonitorMode (te::InputDevice::MonitorMode::automatic);
+        // « on » et non « automatic » : avec « automatic » Tracktion ne crée le
+        // noeud d'entrée que si la piste est armée, donc le clavier reste muet
+        // quand on joue sans enregistrer.
+        virtualKeyboard->setMonitorMode (te::InputDevice::MonitorMode::on);
         virtualKeyboard->setEnabled (true);
     }
 }
@@ -311,9 +317,6 @@ te::AudioTrack* EngineHost::addTrackOfKind (bool midi)
     {
         if (auto synth = edit->getPluginCache().createNewPlugin (te::FourOscPlugin::xmlTypeName, {}))
             track->pluginList.insertPlugin (synth, 0, nullptr);
-
-        if (auto* midiDevice = dynamic_cast<te::VirtualMidiInputDevice*> (&track->getMidiInputDevice()))
-            midiDevice->setEnabled (true);
     }
 
     return track;
@@ -439,7 +442,8 @@ void EngineHost::setTrackArmed (te::AudioTrack& track, bool armed)
         {
             auto& device = instance->getInputDevice();
 
-            const bool matches = midi ? dynamic_cast<te::VirtualMidiInputDevice*> (&device) != nullptr
+            const bool matches = midi ? (dynamic_cast<te::VirtualMidiInputDevice*> (&device) != nullptr
+                                         && ! device.isTrackDevice())
                                       : device.getDeviceType() == te::InputDevice::waveDevice;
 
             if (! matches)

@@ -34,8 +34,10 @@ routage vers la piste MIDI sélectionnée.
 
 Correctif du 19/11 : le clavier est désormais horizontal (paysage) et ses notes, ainsi que
 celles du piano roll, passent par le device clavier virtuel affecté à la piste : le son
-arrive même sur une piste vide, transport arrêté. Fenêtres de piste fermées avant toute
-suppression (évite un use-after-free). À valider à l'écoute.
+arrive même sur une piste vide, transport arrêté. Les devices MIDI propres aux pistes sont désactivés
+(ils provoquaient un doublon de noeuds TrackMidiInputDeviceNode et un plantage au démarrage) ; seul le
+device clavier virtuel, en monitorage permanent, alimente les synthés. Fenêtres de piste fermées avant
+toute suppression (évite un use-after-free). À valider à l'écoute.
 
 ## M2 : édition (rendre l'enregistrement utile)
 
