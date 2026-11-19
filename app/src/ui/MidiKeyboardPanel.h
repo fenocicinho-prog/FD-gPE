@@ -7,8 +7,8 @@
 
 namespace fdgpe
 {
-/** Petit clavier jouable, attaché à une piste MIDI. Les notes partent
-    directement vers le device MIDI de cette piste (thread UI uniquement). */
+/** Clavier horizontal jouable, attaché à une piste MIDI. Les notes partent
+    vers le device clavier virtuel, affecté à cette piste (thread UI uniquement). */
 class MidiKeyboardPanel final : public juce::Component,
                                 private juce::MidiKeyboardState::Listener
 {
@@ -16,12 +16,12 @@ public:
     MidiKeyboardPanel (EngineHost& h, te::AudioTrack& t)
         : host (h),
           track (t),
-          keyboard (state, juce::MidiKeyboardComponent::verticalKeyboardFacingLeft)
+          keyboard (state, juce::MidiKeyboardComponent::horizontalKeyboard)
     {
         state.addListener (this);
-        keyboard.setAvailableRange (36, 96);
+        keyboard.setAvailableRange (21, 108);
         keyboard.setLowestVisibleKey (48);
-        keyboard.setKeyWidth (22.0f);
+        keyboard.setKeyWidth (20.0f);
         keyboard.setScrollButtonsVisible (true);
 
         keyboard.setColour (juce::MidiKeyboardComponent::keyDownOverlayColourId, palette::blue.withAlpha (0.65f));
@@ -31,7 +31,7 @@ public:
         keyboard.setColour (juce::MidiKeyboardComponent::upDownButtonArrowColourId, palette::blue);
 
         addAndMakeVisible (keyboard);
-        setSize (150, 420);
+        setSize (900, 160);
     }
 
     ~MidiKeyboardPanel() override

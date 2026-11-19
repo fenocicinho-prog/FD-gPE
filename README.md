@@ -257,7 +257,7 @@ d'enregistrement, quand tu ajoutes ou supprimes une piste, et à la fermeture.
 | Revenir au début | Bouton **\|<** |
 | Enregistrer | Arme une piste avec **ARM**, puis **REC**. REC refuse de démarrer si aucune piste n'est armée |
 | Enregistrer de l'audio | Piste **AUDIO** armée : entrée 1 de la carte son (mono) |
-| Enregistrer du MIDI | Piste **MIDI** armée : bouton **CLAVIER** de la piste (souris), touches A W S E D F T G Y H U J du clavier de l'ordinateur, ou clavier MIDI branché |
+| Enregistrer du MIDI | Piste **MIDI** armée : bouton **CLAVIER** de la piste (clavier horizontal jouable), touches A W S E D F T G Y H U J du clavier de l'ordinateur, ou clavier MIDI branché |
 | Boucle / métronome | **BOUCLE** (4 mesures depuis la position courante) et **MÉTRO** |
 | Tempo | Boutons **-** et **+** à côté de TEMPO |
 | Déplacer la tête de lecture | Clic ou glissé sur la règle, ou clic dans une piste |

@@ -39,6 +39,7 @@ private:
     void refreshRows();
     void viewChanged();
     void startRecording();
+    void closeTrackEditors();
     void createAudioTrack();
     void createMidiTrack();
     void removeTrack (te::AudioTrack&);

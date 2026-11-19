@@ -32,6 +32,11 @@ Ajouts du 19/11 (à valider) : le clavier horizontal du bas est retiré ; chaque
 joue la note sur le synthé de la piste (aperçu audible). Les touches de l'ordinateur gardent leur
 routage vers la piste MIDI sélectionnée.
 
+Correctif du 19/11 : le clavier est désormais horizontal (paysage) et ses notes, ainsi que
+celles du piano roll, passent par le device clavier virtuel affecté à la piste : le son
+arrive même sur une piste vide, transport arrêté. Fenêtres de piste fermées avant toute
+suppression (évite un use-after-free). À valider à l'écoute.
+
 ## M2 : édition (rendre l'enregistrement utile)
 
 - [x] **M2.1 Forme d'onde** dans les clips audio (miniatures Tracktion). *Critère* : un clip enregistré montre sa

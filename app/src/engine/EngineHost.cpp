@@ -637,7 +637,23 @@ void EngineHost::sendNoteOff (int midiNote)
 
 void EngineHost::sendMidiToTrack (te::AudioTrack& track, const juce::MidiMessage& message)
 {
-    if (auto* device = dynamic_cast<te::VirtualMidiInputDevice*> (&track.getMidiInputDevice()))
+    // Le device clavier global est le seul dont les notes atteignent la chaîne
+    // de plugins d'une piste (les devices propres aux pistes servent au routage
+    // entre pistes). On l'affecte à la piste jouée pour créer le noeud d'entrée
+    // live, même si la piste est vide et le transport arrêté.
+    if (virtualKeyboard == nullptr)
+        return;
+
+    if (auto* context = edit->getCurrentPlaybackContext())
+    {
+        if (auto* instance = context->getInputFor (virtualKeyboard.get()))
+        {
+            if (! te::isOnTargetTrack (*instance, track, 0))
+                [[ maybe_unused ]] auto result = instance->setTarget (track.itemID, true, nullptr, 0);
+        }
+    }
+
+    if (auto* device = dynamic_cast<te::VirtualMidiInputDevice*> (virtualKeyboard.get()))
         device->handleIncomingMidiMessage (message, te::MPESourceID());
 }
 

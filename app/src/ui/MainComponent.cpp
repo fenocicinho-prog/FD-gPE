@@ -523,13 +523,19 @@ void MainComponent::releaseHeldKeys()
 }
 
 //==============================================================================
+void MainComponent::closeTrackEditors()
+{
+    // Ces fenêtres gardent une référence sur une piste ou un clip : elles doivent
+    // disparaître avant toute reconstruction ou suppression de piste.
+    keyboardWindow.reset();
+    inlinePianoRoll.reset();
+}
+
 void MainComponent::rebuildRows()
 {
     // Les lignes sont détruites AVANT toute suppression de piste (leurs vu-mètres
-    // sont branchés sur les pistes). L'éditeur intégré et le clavier référencent
-    // une piste/un clip : on les ferme aussi avant de reconstruire les lignes.
-    keyboardWindow.reset();
-    inlinePianoRoll.reset();
+    // sont branchés sur les pistes).
+    closeTrackEditors();
     rows.clear();
 
     TrackRow::Callbacks callbacks;
@@ -751,6 +757,7 @@ void MainComponent::removeTrack (te::AudioTrack& track)
         if (std::find (tracks.begin(), tracks.end(), trackPtr) == tracks.end())
             return;
 
+        closeTrackEditors();
         rows.clear();                  // d'abord les vu-mètres
         host.deleteTrack (*trackPtr);
         host.saveProject();
@@ -848,6 +855,7 @@ void MainComponent::showProjectMenu()
 
 void MainComponent::newProject()
 {
+    closeTrackEditors();
     rows.clear();
     releaseHeldKeys();
 
@@ -878,6 +886,7 @@ void MainComponent::openProject()
         return;
 
     const auto file = chooser.getResult();
+    closeTrackEditors();
     rows.clear();
     releaseHeldKeys();
 
@@ -949,6 +958,7 @@ void MainComponent::duplicateTrack (te::AudioTrack* track)
     if (track == nullptr)
         return;
 
+    closeTrackEditors();
     rows.clear();
     const auto* copy = host.duplicateTrack (*track);
     rebuildRows();
