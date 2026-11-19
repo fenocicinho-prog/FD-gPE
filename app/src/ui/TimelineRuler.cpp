@@ -1,9 +1,30 @@
 #include "TimelineRuler.h"
 
+#include <cmath>
+
 #include "Palette.h"
 
 namespace fdgpe
 {
+namespace
+{
+    // Poignées en bas de la règle : la tête de lecture et ses marqueurs occupent le haut.
+    constexpr int handleHeight = 13;
+    constexpr int handleHalfWidth = 7;
+
+    /** Garde une borne de boucle dans un domaine valide : jamais négative, et
+        toujours à au moins `minGap` de l'autre borne. Fonction pure, testable. */
+    double constrainLoopEdge (double candidate, double otherEdge, bool isStart, double minGap) noexcept
+    {
+        candidate = juce::jmax (0.0, candidate);
+
+        if (isStart)
+            return juce::jmin (candidate, juce::jmax (0.0, otherEdge - minGap));
+
+        return juce::jmax (candidate, otherEdge + minGap);
+    }
+}
+
 TimelineRuler::TimelineRuler (EngineHost& h, TimelineModel& m, std::function<void (double)> onSeek)
     : host (h), model (m), seek (std::move (onSeek))
 {
@@ -16,6 +37,18 @@ void TimelineRuler::paint (juce::Graphics& g)
 
     g.setGradientFill (juce::ColourGradient (palette::panelHi, 0.0f, 0.0f, palette::panel, 0.0f, r.getBottom(), false));
     g.fillRect (r);
+
+    // Témoin discret de la zone de boucle : très pâle quand la boucle est coupée,
+    // un peu plus visible quand elle est active (les poignées restent seules saturées).
+    const auto loop = host.getLoopRange();
+    const float loopX = model.secondsToX (loop.first);
+    const float loopRight = model.secondsToX (loop.second);
+
+    if (loopRight > loopX && loopX < r.getRight() && loopRight > 0.0f)
+    {
+        g.setColour (palette::violet.withAlpha (host.isLooping() ? 0.16f : 0.08f));
+        g.fillRect (loopX, 0.0f, loopRight - loopX, r.getHeight() - 1.0f);
+    }
 
     g.setColour (palette::blueSoft.withAlpha (0.55f));
     g.drawHorizontalLine (getHeight() - 1, 0.0f, r.getRight());
@@ -85,18 +118,109 @@ void TimelineRuler::paint (juce::Graphics& g)
         g.setFont (juce::Font (juce::FontOptions (9.5f, juce::Font::bold)));
         g.drawText (marker.name, juce::roundToInt (x) + 5, 1, 82, 11, juce::Justification::centredLeft);
     }
+
+    drawLoopHandle (g, loopX);
+    drawLoopHandle (g, loopRight);
+}
+
+void TimelineRuler::drawLoopHandle (juce::Graphics& g, float x) const
+{
+    if (x < -handleHalfWidth || x > getWidth() + handleHalfWidth)
+        return;
+
+    const float y = (float) getHeight() - (float) handleHeight - 1.0f;
+    const float centre = (float) juce::roundToInt (x);
+
+    g.setColour (palette::violet);
+    g.fillRoundedRectangle (centre - 4.0f, y, 8.0f, (float) handleHeight, 2.0f);
+
+    // Deux petits traits clairs : une poignée, pas la tête de lecture.
+    g.setColour (palette::violetSoft);
+    g.drawVerticalLine (juce::roundToInt (centre) - 1, y + 3.0f, y + (float) handleHeight - 3.0f);
+    g.drawVerticalLine (juce::roundToInt (centre) + 1, y + 3.0f, y + (float) handleHeight - 3.0f);
+}
+
+TimelineRuler::Drag TimelineRuler::loopHandleAt (const juce::MouseEvent& e) const
+{
+    // Seule la bande du bas est sensible : ailleurs, la règle place la tête de lecture.
+    if (e.y < getHeight() - handleHeight - 2)
+        return Drag::none;
+
+    const auto loop = host.getLoopRange();
+    const int startX = juce::roundToInt (model.secondsToX (loop.first));
+    const int endX = juce::roundToInt (model.secondsToX (loop.second));
+
+    if (std::abs (e.x - startX) <= handleHalfWidth)
+        return Drag::start;
+
+    if (std::abs (e.x - endX) <= handleHalfWidth)
+        return Drag::end;
+
+    return Drag::none;
+}
+
+void TimelineRuler::updateLoopFromDrag (const juce::MouseEvent& e)
+{
+    const auto loop = host.getLoopRange();
+    double seconds = juce::jmax (0.0, model.xToSeconds ((float) e.x));
+
+    if (model.snapBeats > 0.0)
+        seconds = host.snapSeconds (seconds, model.snapBeats);
+
+    // Un seizième de temps au tempo courant : la boucle ne peut pas s'inverser.
+    const double minGap = (60.0 / juce::jmax (1.0, host.getTempoBpm())) * 0.25;
+
+    if (drag == Drag::start)
+        host.setLoopRange (constrainLoopEdge (seconds, loop.second, true, minGap), loop.second);
+    else if (drag == Drag::end)
+        host.setLoopRange (loop.first, constrainLoopEdge (seconds, loop.first, false, minGap));
+
+    repaint();
 }
 
 void TimelineRuler::mouseDown (const juce::MouseEvent& e)
 {
+    drag = loopHandleAt (e);
+
+    if (drag != Drag::none)
+    {
+        updateLoopFromDrag (e);
+        return;
+    }
+
     if (seek)
         seek (juce::jmax (0.0, model.xToSeconds ((float) e.x)));
 }
 
 void TimelineRuler::mouseDrag (const juce::MouseEvent& e)
 {
+    if (drag != Drag::none)
+    {
+        updateLoopFromDrag (e);
+        return;
+    }
+
     if (seek)
         seek (juce::jmax (0.0, model.xToSeconds ((float) e.x)));
+}
+
+void TimelineRuler::mouseUp (const juce::MouseEvent&)
+{
+    drag = Drag::none;
+}
+
+void TimelineRuler::mouseMove (const juce::MouseEvent& e)
+{
+    setMouseCursor (loopHandleAt (e) != Drag::none ? juce::MouseCursor::LeftRightResizeCursor
+                                              : juce::MouseCursor::PointingHandCursor);
+}
+
+void TimelineRuler::mouseExit (const juce::MouseEvent&)
+{
+    // Pendant un glissé, JUCE continue d'envoyer mouseDrag à la règle même si le
+    // pointeur en sort : ne pas annuler la poignée avant le mouseUp.
+    if (drag == Drag::none)
+        setMouseCursor (juce::MouseCursor::PointingHandCursor);
 }
 
 void TimelineRuler::mouseWheelMove (const juce::MouseEvent& e, const juce::MouseWheelDetails& wheel)

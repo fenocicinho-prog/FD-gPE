@@ -258,9 +258,9 @@ d'enregistrement, quand tu ajoutes ou supprimes une piste, et à la fermeture.
 | Enregistrer | Arme une piste avec **ARM**, puis **REC**. REC refuse de démarrer si aucune piste n'est armée |
 | Enregistrer de l'audio | Piste **AUDIO** armée : entrée 1 de la carte son (mono) |
 | Enregistrer du MIDI | Piste **MIDI** armée : bouton **CLAVIER** de la piste (clavier horizontal jouable), touches A W S E D F T G Y H U J du clavier de l'ordinateur, ou clavier MIDI branché |
-| Boucle / métronome | **BOUCLE** (4 mesures depuis la position courante) et **MÉTRO** |
+| Boucle / métronome | **BOUCLE** (4 mesures depuis la position courante) et **MÉTRO**. Pour régler la boucle : glisser les deux petites poignées violettes en bas de la règle (avec magnétisme selon le réglage) |
 | Tempo | Boutons **-** et **+** à côté de TEMPO |
-| Déplacer la tête de lecture | Clic ou glissé sur la règle, ou clic dans une piste |
+| Déplacer la tête de lecture | Clic ou glissé sur la règle (en dehors des poignées de boucle), ou clic dans une piste |
 | Zoom / défilement | Ctrl + molette = zoom ; Maj + molette = défilement horizontal |
 | Renommer une piste | Double-clic sur son nom |
 | Remettre un curseur à zéro | Double-clic sur VOL ou PAN |
@@ -322,7 +322,7 @@ Un clic sur **+** ajoute le plugin à la piste choisie.
 - Les formes d'onde audio sont chargées à la demande ; sur un très gros projet, l'affichage peut prendre un instant.
 - L'export WAV est synchrone : l'interface peut se figer quelques instants sur un long projet.
 - Le scan VST3 n'est pas hors processus : un plugin qui plante peut faire tomber l'application. Pas de LV2 ni de CLAP pour l'instant.
-- Le magnétisme est disponible, mais les bornes de boucle ne se règlent pas encore à la souris ; copier/coller des clips se fait par duplication.
+- Le magnétisme et les bornes de boucle à la souris sont disponibles ; copier/coller des clips se fait par duplication.
 - Le séquenceur de pas, le sampler à pads, les thèmes interchangeables et les bus d'envoi ne sont pas encore implémentés.
 - Catalogue en ligne, installateur, signatures, comptes et packs de sons (jalons M4+) arrivent plus tard.
 

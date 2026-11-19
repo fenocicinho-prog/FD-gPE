@@ -66,9 +66,12 @@ fenêtre est maintenant créée avec `create()` puis rendue visible : elle est n
       *Interface du 19/11 : police classique (sans-serif) au lieu de monospace ; bouton **+** unique
       proposant Piste audio / Piste MIDI ; outils regroupés dans **MENU** (bibliothèque, piano roll,
       carte de tempo, export, réglages audio, mixeur, magnétisme) avec **BIBLIOTHÈQUE** à côté.*
-- [ ] **M2.3 Grille et boucle** : magnétisme sur la grille (mesures, temps), début et fin de boucle réglables
+- [x] **M2.3 Grille et boucle** : magnétisme sur la grille (mesures, temps), début et fin de boucle réglables
       sur la règle. *Critère* : un clip déplacé « accroche » les temps ; la boucle se règle à la souris.
-      *Partiel : magnétisme fait, bornes de boucle pas encore réglables à la souris.*
+      *Fait le 19/11 : deux poignées violettes en bas de la règle (7 px de tolérance, 13 px de haut),
+      glissé avec magnétisme et garde-fou d'ordre (1/16 de temps minimum), bande de boucle discrète,
+      curseur de redimensionnement. Clic ailleurs = tête de lecture. Build local OK, test logique 6 cas
+      sur les bornes ; validation utilisateur du geste en attente.*
 - [ ] **M2.4 Piano roll** : ouvrir un clip MIDI, ajouter, déplacer, redimensionner, supprimer des notes,
       vélocité, quantification. *Critère* : on écrit un motif à la souris et on l'entend.
       *Partiel : création, déplacement, suppression, vélocité et quantification faits ; redimensionnement d'une note existante manquant.*
