@@ -116,9 +116,17 @@ public:
     }
 
     /** Appelé par le minuteur 20 Hz de MainComponent : suit la lecture et
-        éteint la note d'aperçu. Aucune allocation, aucun accès disque. */
+        éteint la note d'aperçu. Thread UI uniquement, aucune E/S. */
     void updatePlayhead()
     {
+        // La piste ou son clip peut avoir été supprimé depuis le panneau : on
+        // éteint les pads restés allumés pour refléter l'état réel du projet.
+        if (findClip() == nullptr && hasActiveSteps())
+        {
+            pattern = {};
+            repaint();
+        }
+
         if (pendingOffPitch >= 0)
         {
             // On relue la piste : un autre clavier peut avoir retargeté le device
@@ -276,36 +284,48 @@ private:
         }
     }
 
+    bool hasActiveSteps() const
+    {
+        for (const auto& row : pattern)
+            for (bool on : row)
+                if (on)
+                    return true;
+
+        return false;
+    }
+
     void toggleStep (int row, int step)
     {
         auto* clip = ensureClip();
         if (clip == nullptr)
             return;
 
-        const bool active = pattern[(std::size_t) row][(std::size_t) step];
+        // Le clip est la source de vérité : le motif en mémoire peut être périmé
+        // si la piste a été supprimée puis recréée entre deux clics.
         const int pitch = pitches[row];
+        const double beat = (double) step * 0.25;
+        const auto notes = host.getNotes (*clip);
+        int found = -1;
 
-        if (active)
+        for (int i = 0; i < (int) notes.size(); ++i)
         {
-            const auto notes = host.getNotes (*clip);
-
-            for (int i = 0; i < (int) notes.size(); ++i)
+            if (notes[(std::size_t) i].pitch == pitch
+                && std::abs (notes[(std::size_t) i].startBeat - beat) < 0.05)
             {
-                if (notes[(std::size_t) i].pitch == pitch
-                    && std::abs (notes[(std::size_t) i].startBeat - (double) step * 0.25) < 0.05)
-                {
-                    host.removeNote (*clip, i);
-                    break;
-                }
+                found = i;
+                break;
             }
         }
+
+        if (found >= 0)
+            host.removeNote (*clip, found);
         else
         {
-            host.addNote (*clip, { (double) step * 0.25, 0.25, pitch, 100 });
+            host.addNote (*clip, { beat, 0.25, pitch, 100 });
             audition (pitch);
         }
 
-        pattern[(std::size_t) row][(std::size_t) step] = ! active;
+        pattern[(std::size_t) row][(std::size_t) step] = (found < 0);
         host.saveProject();
         repaint (padBounds (row, step).toNearestInt().expanded (3));
     }

@@ -86,6 +86,11 @@ fenêtre est maintenant créée avec `create()` puis rendue visible : elle est n
       notes MIDI dans un clip d'une mesure sur la piste « Batterie », créée au premier clic). Test logique
       pas/temps, `verifier.sh`, `build_local.sh` et sonde premier clic OK ; en attente de validation
       utilisateur du son et du rendu. Limite connue : la grille déborde sous 480 px de large.
+      Correctif du 20/11 : après suppression de la piste « Batterie », le panneau lisait son motif
+      périmé au lieu du clip et un clic éteignait un pad au lieu de recréer la note ; `toggleStep`
+      lit désormais l'état réel des notes et `updatePlayhead` éteint les pads orphelins. Sonde
+      clic → suppression → clic : piste recréée, 1 note, zéro assertion. Le synthé FourOsc reste le
+      son par défaut des pistes MIDI jusqu'au sampler M2.6 (choix de l'utilisateur).
 - [ ] **M2.6 Sampler** : charger des WAV sur des pads, kits de batterie. *Critère* : on joue et on séquence ses
       propres sons.
 - [ ] **M2.7 Thèmes de couleurs** : `Palette` devient un thème modifiable (sombre, clair, choix de la couleur
