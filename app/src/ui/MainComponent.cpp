@@ -42,46 +42,41 @@ public:
             applyAndRefresh (true, true);
         };
 
-        const char* const names[] = { "ROUGE", "VERT", "BLEU" };
+        // Deux accents prédéfinis, sans curseurs R/V/B : jaune fané et vert clair.
+        const juce::uint32 presets[] = { 0xffc99a2f, 0xff62bd78 };
 
-        for (int i = 0; i < 3; ++i)
+        for (int i = 0; i < 2; ++i)
         {
-            addAndMakeVisible (labels[i]);
-            labels[i].setText (tr (names[i]), juce::dontSendNotification);
-            labels[i].setFont (juce::Font (juce::FontOptions (10.0f, juce::Font::bold)));
-            labels[i].setColour (juce::Label::textColourId, palette::text);
-
-            addAndMakeVisible (sliders[i]);
-            sliders[i].setSliderStyle (juce::Slider::LinearHorizontal);
-            sliders[i].setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
-            sliders[i].setRange (0, 255, 1);
-            sliders[i].onValueChange = [this]
+            addAndMakeVisible (accentButtons[i]);
+            accentButtons[i].setButtonText (tr (i == 0 ? "JAUNE FANÉ" : "VERT CLAIR"));
+            accentButtons[i].setClickingTogglesState (true);
+            accentButtons[i].setRadioGroupId (9001, juce::dontSendNotification);
+            accentButtons[i].setToggleState (accent.getARGB() == presets[i], juce::dontSendNotification);
+            const auto preset = presets[i];
+            accentButtons[i].onClick = [this, preset]
             {
-                accent = juce::Colour::fromRGBA ((juce::uint8) sliders[0].getValue(),
-                                                 (juce::uint8) sliders[1].getValue(),
-                                                 (juce::uint8) sliders[2].getValue(), 255);
-                applyAndRefresh (false, false);
+                accent = juce::Colour (preset);
+                applyAndRefresh (true, true);
             };
-            // Un seul rafraîchissement complet et une seule écriture disque par geste.
-            sliders[i].onDragEnd = [this] { applyAndRefresh (true, true); };
         }
 
-        sliders[0].setValue ((double) accent.getRed(), juce::dontSendNotification);
-        sliders[1].setValue ((double) accent.getGreen(), juce::dontSendNotification);
-        sliders[2].setValue ((double) accent.getBlue(), juce::dontSendNotification);
+        addAndMakeVisible (accentCaption);
+        accentCaption.setText (tr ("COULEUR D'ACCENT"), juce::dontSendNotification);
+        accentCaption.setFont (juce::Font (juce::FontOptions (11.0f, juce::Font::bold)));
+        accentCaption.setColour (juce::Label::textColourId, palette::textDim);
 
         addAndMakeVisible (closeButton);
         closeButton.onClick = [this]
         {
-            // Couvre aussi les changements au clavier (onDragEnd n'est alors pas appelé).
-            host.saveTheme (dark, accent);
-
+            // Le destructeur sauvegarde (aussi pour un clic hors du CallOutBox
+            // ou Échap) : une seule écriture disque suffit.
             if (auto* box = findParentComponentOfClass<juce::CallOutBox>())
                 box->dismiss();
         };
 
         // Le CallOutBox prend la taille de son contenu : sans setSize, rien ne s'affiche.
-        // 200 px de haut laissent une cible FERMER de 44 px sans chevaucher les sliders.
+        // 200 px de haut laissent des cibles de 44 px sans chevauchement :
+        // pastille 6-26, liste 28-72, légende 74-92, accents 96-140, FERMER 150-194.
         setSize (300, 200);
     }
 
@@ -100,22 +95,17 @@ public:
         g.drawRect (getLocalBounds(), 1);
 
         g.setColour (accent);
-        g.fillRoundedRectangle (8.0f, 8.0f, (float) getWidth() - 16.0f, 22.0f, 4.0f);
+        g.fillRoundedRectangle (8.0f, 6.0f, (float) getWidth() - 16.0f, 20.0f, 4.0f);
         g.setColour (palette::violet);
-        g.drawRoundedRectangle (8.0f, 8.0f, (float) getWidth() - 16.0f, 22.0f, 4.0f, 1.5f);
+        g.drawRoundedRectangle (8.0f, 6.0f, (float) getWidth() - 16.0f, 20.0f, 4.0f, 1.5f);
     }
 
     void resized() override
     {
-        modeBox.setBounds (8, 36, getWidth() - 16, 26);
-
-        for (int i = 0; i < 3; ++i)
-        {
-            const int y = 68 + i * 26; // 68 à 142 : trois lignes distinctes.
-            labels[i].setBounds (8, y, 58, 22);
-            sliders[i].setBounds (70, y, getWidth() - 78, 22);
-        }
-
+        modeBox.setBounds (8, 28, getWidth() - 16, 44);
+        accentCaption.setBounds (8, 74, getWidth() - 16, 18);
+        accentButtons[0].setBounds (8, 96, 138, 44);
+        accentButtons[1].setBounds (154, 96, 138, 44);
         closeButton.setBounds (getWidth() - 104, getHeight() - 50, 96, 44);
     }
 
@@ -125,20 +115,16 @@ private:
         // Les composants qui ont appelé setColour() gardent une copie de
         // l'ancien thème. On retire ces surcharges : ils retombent sur le
         // LookAndFeel, qui vient d'être rafraîchi avec la nouvelle palette.
+        // On ne retire que les identifiants que FdLookAndFeel définit : les
+        // surcharges propres aux composants (témoin LED, couleur de piste,
+        // touches du clavier) doivent rester telles quelles.
         static const int colourIds[] = {
             juce::Label::textColourId, juce::Label::textWhenEditingColourId,
             juce::Label::backgroundColourId, juce::Label::backgroundWhenEditingColourId,
             juce::TextEditor::backgroundColourId, juce::TextEditor::textColourId,
             juce::TextEditor::outlineColourId, juce::TextEditor::focusedOutlineColourId,
-            juce::TextButton::buttonColourId, juce::TextButton::buttonOnColourId,
-            juce::TextButton::textColourOffId, juce::TextButton::textColourOnId,
             juce::ComboBox::backgroundColourId, juce::ComboBox::textColourId,
-            juce::ComboBox::outlineColourId,
-            juce::MidiKeyboardComponent::keyDownOverlayColourId,
-            juce::MidiKeyboardComponent::mouseOverKeyOverlayColourId,
-            juce::MidiKeyboardComponent::shadowColourId,
-            juce::MidiKeyboardComponent::upDownButtonBackgroundColourId,
-            juce::MidiKeyboardComponent::upDownButtonArrowColourId
+            juce::ComboBox::outlineColourId
         };
 
         for (int id : colourIds)
@@ -157,17 +143,15 @@ private:
         palette::theme.apply (dark, accent);
         refreshLookAndFeel();
 
-        for (auto& label : labels)
-            label.setColour (juce::Label::textColourId, palette::text);
-
         if (save)
             host.saveTheme (dark, accent);
 
-        // Pendant le glissement, seul le panneau (pastille incluse) est redessiné.
         if (fullRefresh)
         {
             if (auto* top = getTopLevelComponent())
                 refreshTree (*top);
+
+            accentCaption.setColour (juce::Label::textColourId, palette::textDim);
         }
         else
         {
@@ -179,8 +163,8 @@ private:
     bool dark = false;
     juce::Colour accent { palette::blue };
     juce::ComboBox modeBox;
-    juce::Label labels[3];
-    juce::Slider sliders[3];
+    juce::Label accentCaption;
+    juce::TextButton accentButtons[2];
     juce::TextButton closeButton { tr ("FERMER") };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ThemePanel)

@@ -111,6 +111,9 @@ fenêtre est maintenant créée avec `create()` puis rendue visible : elle est n
       claires invisibles en sombre), et les surcharges de couleurs des composants sont retirées lors d'un
       changement à chaud pour retomber sur le LookAndFeel rafraîchi. Sonde : texte de la transport bar =
       `fff9f9ff` au lancement en sombre.
+      Suite du 20/11 (demande utilisateur) : suppression des curseurs R/V/B au profit de deux accents
+      prédéfinis « JAUNE FANÉ » et « VERT CLAIR », migration des anciens accents vers le jaune, pistes et
+      clips en aplats (plus de dégradé ni de reflet, contour fin, liseré de piste), nom de clip sur fond uni.
       **En attente de validation utilisateur.** Limite connue : les libellés de certaines fenêtres déjà
       ouvertes (piano roll, navigateur de plugins, mixeur) gardent leur couleur jusqu'à leur réouverture.
 

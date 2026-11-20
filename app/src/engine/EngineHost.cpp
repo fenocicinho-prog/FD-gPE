@@ -1196,9 +1196,13 @@ std::pair<bool, juce::Colour> EngineHost::loadTheme() const
     const bool dark = props.getValue ("fdgpeThemeDark", "0") == "1";
     auto accent = juce::Colour::fromString (props.getValue ("fdgpeAccent", ""));
 
-    // Une préférence absente ou corrompue ne doit pas donner un accent invisible.
-    if (accent.isTransparent())
-        accent = juce::Colour (0xff0060df);
+    // Migration : les versions précédentes avaient un bleu par défaut ou un
+    // accent arbitraire (curseurs R/V/B). Le panneau ne propose plus que deux
+    // accents, donc tout accent non prédéfini devient le jaune fané.
+    const auto argb = accent.getARGB();
+
+    if (argb == 0 || argb != 0xff62bd78)
+        accent = juce::Colour (0xffc99a2f);
 
     return { dark, accent };
 }

@@ -37,7 +37,7 @@ struct Theme
     juce::Colour buttonDown   { 0xffd2d9e6 };
 
     // Accent
-    juce::Colour blue         { 0xff0060df };
+    juce::Colour blue         { 0xffc99a2f };
     juce::Colour blueBright   { 0xff3b92ff };
     juce::Colour blueSoft     { 0xffcfe3ff };
     juce::Colour blueFaint    { 0xffeaf3ff };
@@ -103,7 +103,9 @@ struct Theme
         }
 
         blue        = accent;
-        blueBright  = accent.withBrightness (juce::jmin (1.0f, accent.getBrightness() + 0.2f));
+        // Variante lisible pour les textes : plus claire en sombre, plus foncée en clair.
+        blueBright  = dark ? accent.withBrightness (juce::jmin (1.0f, accent.getBrightness() + 0.2f))
+                           : accent.darker (0.25f);
         blueSoft    = accent.withSaturationHSL (0.25f).withBrightness (dark ? 0.55f : 0.92f);
         blueFaint   = accent.withSaturationHSL (0.12f).withBrightness (dark ? 0.30f : 0.97f);
         violet      = accent.withHue (0.75f).withSaturationHSL (0.70f);

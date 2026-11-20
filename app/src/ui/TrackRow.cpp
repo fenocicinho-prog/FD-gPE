@@ -403,11 +403,11 @@ void TrackRow::paint (juce::Graphics& g)
 {
     auto header = getLocalBounds().removeFromLeft (headerWidth).toFloat();
 
-    g.setGradientFill (juce::ColourGradient (palette::panelHi, 0.0f, header.getY(),
-                                             palette::panel, 0.0f, header.getBottom(), false));
+    // Aplat sans reflet : en-tête de piste lisible, comme un DAW classique.
+    g.setColour (palette::panel);
     g.fillRect (header);
 
-    g.setColour (juce::Colours::white.withAlpha (0.9f));
+    g.setColour (palette::line);
     g.drawHorizontalLine (0, header.getX(), header.getRight());
 
     // titre du bandeau de plugins
@@ -419,7 +419,7 @@ void TrackRow::paint (juce::Graphics& g)
     paintMeter (g);
 
     auto lane = getLaneBounds();
-    g.setColour (host.isMidiTrack (track) ? palette::midiClip : palette::audioClip);
+    g.setColour (palette::lane);
     g.fillRect (lane);
 
     {
@@ -428,7 +428,7 @@ void TrackRow::paint (juce::Graphics& g)
         paintLane (g, lane);
     }
 
-    g.setColour (palette::blueSoft);
+    g.setColour (palette::line);
     g.drawHorizontalLine (getHeight() - 1, 0.0f, (float) getWidth());
     g.setColour (palette::outline);
     g.drawVerticalLine (headerWidth - 1, 0.0f, (float) getHeight());
@@ -500,12 +500,16 @@ void TrackRow::paintLane (juce::Graphics& g, juce::Rectangle<int> lane)
         juce::Rectangle<float> r (x1, bounds.getY() + 10.0f, juce::jmax (4.0f, x2 - x1), bounds.getHeight() - 20.0f);
         const bool selected = (clip == selectedClip);
 
-        g.setGradientFill (juce::ColourGradient (base.withAlpha (0.95f), 0.0f, r.getY(),
-                                                 accent.withAlpha (0.45f), 0.0f, r.getBottom(), false));
-        g.fillRoundedRectangle (r, 5.0f);
+        // Clip plat : une couleur unie, un liseré fin ; pas de dégradé brillant.
+        g.setColour (base);
+        g.fillRect (r);
 
-        g.setColour (selected ? palette::blue : accent);
-        g.drawRoundedRectangle (r.reduced (0.5f), 5.0f, selected ? 2.4f : 1.2f);
+        // Liseré de couleur de piste : dessiné avant le contour pour ne pas le masquer.
+        g.setColour (accent);
+        g.fillRect (r.getX(), r.getY(), 3.0f, r.getHeight());
+
+        g.setColour (selected ? palette::violet : palette::outline);
+        g.drawRect (r.reduced (0.5f), selected ? 2.0f : 1.0f);
 
         // Contenu réel du clip : forme d'onde pour l'audio, notes pour le MIDI.
         {
@@ -538,7 +542,7 @@ void TrackRow::paintLane (juce::Graphics& g, juce::Rectangle<int> lane)
                         const float nw = juce::jmax (1.5f, (float) (n.lengthBeats / clipLengthBeats) * r.getWidth());
                         const float ny = r.getBottom() - 4.0f
                                        - (float) (n.pitch - lowest + 1) * noteH;
-                        g.setColour (palette::blue.withAlpha (0.72f));
+                        g.setColour (palette::text.withAlpha (0.80f));
                         g.fillRoundedRectangle (nx, ny, nw, juce::jmax (1.2f, noteH - 0.8f), 1.0f);
                     }
                 }
@@ -549,9 +553,20 @@ void TrackRow::paintLane (juce::Graphics& g, juce::Rectangle<int> lane)
             }
         }
 
+        // Fond uni derrière le nom : le texte reste lisible sur un clip jaune
+        // en mode clair comme sur un clip vert en mode sombre, sans dégradé.
+        const auto textArea = r.toNearestInt().reduced (8, 4);
+        const auto labelArea = textArea.withHeight (18);
+
+        if (! labelArea.isEmpty())
+        {
+            g.setColour (palette::panel.withAlpha (0.85f));
+            g.fillRect (labelArea);
+        }
+
         g.setColour (palette::text);
         g.setFont (juce::Font (juce::FontOptions (12.0f, juce::Font::bold)));
-        g.drawFittedText (clip->getName(), r.toNearestInt().reduced (8, 4), juce::Justification::topLeft, 1);
+        g.drawFittedText (clip->getName(), labelArea, juce::Justification::topLeft, 1);
     }
 
     // Enregistrement en cours
@@ -614,7 +629,7 @@ void TrackRow::drawWaveform (juce::Graphics& g, te::Clip& clip, juce::Rectangle<
     const auto range = te::TimeRange (te::TimePosition::fromSeconds (sourceStart),
                                       te::TimeDuration::fromSeconds (sourceEnd - sourceStart));
 
-    g.setColour (palette::blue.withAlpha (0.78f));
+    g.setColour (palette::text.withAlpha (0.80f));
     thumbnail->drawChannels (g, visible.toNearestInt(), range, 0.9f);
 }
 
@@ -801,7 +816,7 @@ void TrackRow::showTrackMenu (const juce::MouseEvent& e)
 void TrackRow::showColourMenu()
 {
     juce::PopupMenu menu;
-    menu.addItem (1, tr ("Bleu Firefox"));
+    menu.addItem (1, tr ("Accent"));
     menu.addItem (2, tr ("Vert"));
     menu.addItem (3, tr ("Orange"));
     menu.addItem (4, tr ("Rouge"));
@@ -811,7 +826,7 @@ void TrackRow::showColourMenu()
     if (auto choice = menu.show())
     {
         const juce::Colour colours[] = { palette::blue, palette::green, palette::amber,
-                                         palette::red, juce::Colour (0xff8e6bff), palette::textDim };
+                                         palette::red, palette::violet, palette::textDim };
 
         if (choice >= 1 && choice <= 6)
         {
