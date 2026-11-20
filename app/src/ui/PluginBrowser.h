@@ -7,6 +7,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include "../engine/EngineHost.h"
+#include "Text.h"
 
 namespace fdgpe
 {
@@ -47,6 +48,7 @@ private:
     void scanPlugins();
     void chooseFolder();
     void addSelected();
+    void unblockSelected();
     void selectIndex (int index);
     void updateButtons();
     juce::String categoryFor (const PluginInfo&) const;
@@ -58,8 +60,9 @@ private:
 
     juce::TextEditor search;
     juce::ComboBox filter;
-    juce::TextButton scanButton { "SCANNER VST3" }, folderButton { "DOSSIER…" },
-                     addButton { "AJOUTER À LA PISTE" }, closeButton { "FERMER" };
+    juce::TextButton scanButton { tr ("SCANNER VST3") }, folderButton { tr ("DOSSIER…") },
+                     addButton { tr ("AJOUTER À LA PISTE") }, unblockButton { tr ("RÉHABILITER") },
+                     closeButton { tr ("FERMER") };
     juce::Label titleLabel, targetLabel, selectedLabel, statusLabel;
 
     juce::Viewport viewport;

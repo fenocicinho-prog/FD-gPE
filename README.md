@@ -287,6 +287,8 @@ d'enregistrement, quand tu ajoutes ou supprimes une piste, et à la fermeture.
 |Ajouter un marqueur|**+ MARQUEUR**, ou touche **M**|
 |Aller au marqueur suivant / précédent|**M>** / **<M**|
 |Ouvrir le navigateur de plugins|**BIBLIOTHÈQUE**, **MENU → Bibliothèque de plugins**, touche **P**, ou tuile **+** sur une piste|
+|Scanner les plugins VST3|Dans le navigateur, **SCANNER VST3** : l'analyse tourne dans un processus séparé, un plugin qui plante ne fait pas tomber l'application|
+|Réhabiliter un plugin bloqué|Tuile **BLOQUÉ** → **RÉHABILITER**, puis relancer **SCANNER VST3** ; la liste noire est conservée dans `~/Documents/FD-gPE/plugin-blacklist.txt`|
 |Éditer / activer / retirer un plugin|Tuile du plugin dans l'en-tête de piste : clic = éditeur, point = ON/OFF, **x** = retrait|
 |Couper / dupliquer / supprimer un clip|Clic droit sur le clip ; ou touche **S** (coupe à la tête de lecture), **Suppr**, **Ctrl+D**|
 |Copier / coller un clip|**Ctrl+C** puis **Ctrl+V** : collage à la tête de lecture sur la piste sélectionnée|

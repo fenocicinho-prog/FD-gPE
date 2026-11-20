@@ -21,7 +21,22 @@ struct PluginInfo
     juce::String identifier;
     bool instrument = false;
     bool builtIn = false;
+    bool blacklisted = false;
     juce::PluginDescription description;   // utile seulement pour les plugins externes
+};
+
+/** Détecte le mode « processus enfant » du scanner Tracktion. À appeler avant
+    toute fenêtre dans JUCEApplication::initialise(). */
+inline bool handlePluginScanChildProcess (const juce::String& commandLine)
+{
+    return te::PluginManager::startChildProcessPluginScan (commandLine);
+}
+
+/** Autorise le scan des plugins dans un processus séparé. */
+class FdEngineBehaviour final : public te::EngineBehaviour
+{
+public:
+    bool canScanPluginsOutOfProcess() override { return true; }
 };
 
 /** Un point de la carte de tempo. */
@@ -209,6 +224,9 @@ public:
     void scanForPlugins (const std::function<void (const juce::String&)>& progress = {});
     void addPluginFolder (const juce::File&);
     juce::StringArray getPluginFolders() const;
+    void savePluginBlacklist();
+    bool isPluginBlacklisted (const juce::String&) const;
+    void setPluginBlacklisted (const juce::String&, bool);
 
     // Apparence : préférences enregistrées hors du projet.
     void saveTheme (bool dark, const juce::Colour& accent);
@@ -249,8 +267,10 @@ private:
     void sendMidi (const juce::MidiMessage&);
     void applyQuantisation (te::MidiClip&);
     juce::PluginDescription findDescription (const PluginInfo&) const;
+    juce::File getPluginBlacklistFile() const;
+    void loadPluginBlacklist();
 
-    te::Engine engine { "FD gPE" };
+    te::Engine engine { "FD gPE", nullptr, std::make_unique<FdEngineBehaviour>() };
     std::unique_ptr<te::Edit> edit;
     juce::File projectFile;
     std::shared_ptr<te::MidiInputDevice> virtualKeyboard;

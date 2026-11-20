@@ -136,6 +136,8 @@ PluginBrowser::PluginBrowser (EngineHost& h, juce::String target,
     scanButton.onClick = [this] { scanPlugins(); };
     folderButton.onClick = [this] { chooseFolder(); };
     addButton.onClick = [this] { addSelected(); };
+    unblockButton.onClick = [this] { unblockSelected(); };
+    unblockButton.setTooltip (tr ("Retirer ce plugin de la liste noire, puis relancer le scan."));
     closeButton.onClick = [this]
     {
         if (onClose)
@@ -153,7 +155,8 @@ PluginBrowser::PluginBrowser (EngineHost& h, juce::String target,
     for (juce::Component* c : { (juce::Component*) &titleLabel, (juce::Component*) &targetLabel,
                                 (juce::Component*) &search, (juce::Component*) &filter,
                                 (juce::Component*) &scanButton, (juce::Component*) &folderButton,
-                                (juce::Component*) &addButton, (juce::Component*) &closeButton,
+                                (juce::Component*) &addButton, (juce::Component*) &unblockButton,
+                                 (juce::Component*) &closeButton,
                                 (juce::Component*) &selectedLabel, (juce::Component*) &statusLabel,
                                 (juce::Component*) &viewport })
         addAndMakeVisible (c);
@@ -273,13 +276,43 @@ void PluginBrowser::selectIndex (int index)
 
 void PluginBrowser::updateButtons()
 {
-    addButton.setEnabled (selected >= 0 && ! trackName.isEmpty());
+    const bool hasSelection = selected >= 0 && selected < (int) plugins.size();
+    const bool blocked = hasSelection && plugins[(size_t) selected].blacklisted;
+
+    addButton.setEnabled (hasSelection && ! trackName.isEmpty() && ! blocked);
+    unblockButton.setEnabled (blocked);
     closeButton.setEnabled (true);
+}
+
+void PluginBrowser::unblockSelected()
+{
+    if (selected < 0 || selected >= (int) plugins.size())
+        return;
+
+    const auto& info = plugins[(size_t) selected];
+
+    if (! info.blacklisted)
+        return;
+
+    host.setPluginBlacklisted (info.identifier, false);
+
+    // La tuile change d'aspect (ou disparaît) : ne pas laisser l'index pointer
+    // une autre tuile.
+    selected = -1;
+    hovered = -1;
+    selectedLabel.setText (tr ("Choisis une tuile, puis Ajouter."), juce::dontSendNotification);
+
+    // refreshPluginList() redessine la grille et met déjà à jour les boutons.
+    refreshPluginList();
+    statusLabel.setText (tr ("Plugin réhabilité : relancez le scan."), juce::dontSendNotification);
 }
 
 void PluginBrowser::addSelected()
 {
     if (selected < 0 || selected >= (int) plugins.size())
+        return;
+
+    if (plugins[(size_t) selected].blacklisted)
         return;
 
     if (onAdd)
@@ -333,10 +366,19 @@ void PluginBrowser::scanPlugins()
     statusLabel.setText (tr ("Scan en cours…"), juce::dontSendNotification);
     ScanTask task (host, nullptr);
 
+    // Persistance sur le thread UI, même si l'utilisateur annule : le scan a pu
+    // blacklister des plugins avant l'annulation.
+    host.savePluginBlacklist();
+
     if (task.runThread())
     {
         refreshPluginList();
         statusLabel.setText (tr ("Scan terminé."), juce::dontSendNotification);
+    }
+    else
+    {
+        refreshPluginList();
+        statusLabel.setText (tr ("Scan annulé."), juce::dontSendNotification);
     }
 }
 
@@ -431,11 +473,15 @@ void PluginBrowser::resized()
 
     area.removeFromTop (8);
 
-    auto bottom = area.removeFromBottom (44);
-    selectedLabel.setBounds (bottom.removeFromLeft (bottom.getWidth() - 340).reduced (0, 8));
-    addButton.setBounds (bottom.removeFromRight (200).reduced (0, 5));
+    auto bottom = area.removeFromBottom (50);
+    selectedLabel.setBounds (bottom.removeFromLeft (juce::jmax (120, bottom.getWidth() - 478)).reduced (0, 8));
+    // 50 px de barre donnent des boutons de 44 px de haut, comme les autres
+    // grosses commandes de l'application.
+    addButton.setBounds (bottom.removeFromRight (200).reduced (0, 3));
     bottom.removeFromRight (8);
-    closeButton.setBounds (bottom.removeFromRight (110).reduced (0, 5));
+    unblockButton.setBounds (bottom.removeFromRight (130).reduced (0, 3));
+    bottom.removeFromRight (8);
+    closeButton.setBounds (bottom.removeFromRight (110).reduced (0, 3));
 
     area.removeFromBottom (8);
     viewport.setBounds (area);
@@ -453,6 +499,10 @@ void PluginBrowser::paintTiles (juce::Graphics& g, juce::Rectangle<int> area)
     g.fillAll (palette::bgBottom);
     g.setColour (palette::line.withAlpha (0.25f));
     g.drawRect (area);
+
+    // En mode sombre, les encres colorées sont trop peu contrastées sur les
+    // badges teintés ; le texte neutre de la palette reste lisible partout.
+    const bool darkTheme = palette::bgTop.getBrightness() < 0.5f;
 
     for (int i = 0; i < (int) visible.size(); ++i)
     {
@@ -486,24 +536,28 @@ void PluginBrowser::paintTiles (juce::Graphics& g, juce::Rectangle<int> area)
 
         g.setColour (palette::textDim);
         g.setFont (juce::Font (juce::FontOptions (10.0f, juce::Font::plain)));
-        g.drawFittedText (info.manufacturer.isNotEmpty() ? info.manufacturer : categoryFor (info),
-                          text.removeFromTop (14.0f).toNearestInt(),
+        g.drawFittedText (info.manufacturer, text.removeFromTop (14.0f).toNearestInt(),
                           juce::Justification::topLeft, 1);
 
-        // Badge
-        auto badge = juce::Rectangle<float> (text.getX(), r.getBottom() - 22.0f, 62.0f, 15.0f);
-        g.setColour (info.builtIn ? palette::blueFaint : palette::green.withAlpha (0.16f));
-        g.fillRoundedRectangle (badge, 4.0f);
-        g.setColour (info.builtIn ? palette::blue : palette::green.darker (0.25f));
-        g.setFont (juce::Font (juce::FontOptions (8.5f, juce::Font::bold)));
-        g.drawText (info.builtIn ? tr ("INTÉGRÉ") : tr ("VST3"), badge, juce::Justification::centred);
-
-        g.setColour (palette::textDim);
+        // Catégorie sur sa propre ligne : à droite du badge il ne reste que
+        // quelques pixels sur une tuile de 178 px.
         g.setFont (juce::Font (juce::FontOptions (9.5f, juce::Font::plain)));
-        g.drawFittedText (categoryFor (info),
-                          juce::Rectangle<float> (badge.getRight() + 6.0f, badge.getY(),
-                                                  r.getRight() - badge.getRight() - 12.0f, 15.0f).toNearestInt(),
-                          juce::Justification::centredLeft, 1);
+        g.drawFittedText (categoryFor (info), text.removeFromTop (14.0f).toNearestInt(),
+                          juce::Justification::topLeft, 1);
+
+        // Même fond teinté pour INTÉGRÉ / VST3 / BLOQUÉ ; l'encre suit le thème
+        // pour garder les trois libellés lisibles en clair comme en sombre.
+        auto badge = juce::Rectangle<float> (text.getX(), r.getBottom() - 22.0f,
+                                             info.blacklisted ? 68.0f : 62.0f, 15.0f);
+        g.setColour (info.blacklisted ? palette::amber.withAlpha (0.16f)
+                                      : (info.builtIn ? palette::blueFaint : palette::green.withAlpha (0.16f)));
+        g.fillRoundedRectangle (badge, 4.0f);
+        g.setColour (darkTheme ? palette::text
+                               : (info.blacklisted ? palette::amber.darker (0.55f)
+                                                   : (info.builtIn ? palette::blue : palette::green.darker (0.25f))));
+        g.setFont (juce::Font (juce::FontOptions (9.0f, juce::Font::bold)));
+        g.drawText (info.blacklisted ? tr ("BLOQUÉ") : (info.builtIn ? tr ("INTÉGRÉ") : tr ("VST3")),
+                    badge, juce::Justification::centred);
     }
 }
 } // namespace fdgpe

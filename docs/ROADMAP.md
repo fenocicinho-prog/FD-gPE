@@ -144,7 +144,14 @@ fenêtre est maintenant créée avec `create()` puis rendue visible : elle est n
 ## M3 : plugins
 
 - [ ] **M3.1** Hébergement VST3 (LV2 à vérifier selon les versions de JUCE/Tracktion), scan hors processus,
-      liste noire des plugins qui plantent. *Partiel : VST3 scanné et intégré, mais scan dans le processus et sans liste noire.*
+      liste noire des plugins qui plantent.
+      *Code terminé le 20/11* : le scanner est lancé dans un processus enfant au démarrage (`FdEngineBehaviour`,
+      `startChildProcessPluginScan`), avec repli de Tracktion vers le processus principal si l'enfant ne démarre pas.
+      La blacklist est chargée et sauvegardée dans `~/Documents/FD-gPE/plugin-blacklist.txt` ; les plugins qui
+      plantent apparaissent en tuile **BLOQUÉ** et peuvent être réhabilités avec **RÉHABILITER** puis un nouveau
+      scan (le fichier « dead man's pedal » est nettoyé). `verifier.sh` sans avertissement, `build_local.sh` OK,
+      revues @interface et @relecteur sans réserve. **En attente de validation utilisateur** (scan VST3, plugin
+      qui plante, réhabilitation).
 - [x] **M3.2** Insérer un plugin sur une piste avec une tuile (image + nom) ; ouvrir sa fenêtre.
 - [x] **M3.3** Effets intégrés (égaliseur, compresseur, réverbération, délai) proposés en tuiles.
 - [ ] **M3.4** Bus d'envoi, piste master, mixeur vertical. *Partiel : volume général et mixeur vertical faits ; bus d'envoi manquants.*

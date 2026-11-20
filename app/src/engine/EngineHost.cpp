@@ -39,6 +39,10 @@ namespace
 //==============================================================================
 EngineHost::EngineHost()
 {
+    // Scan hors processus et liste noire persistante, avant tout chargement de projet.
+    engine.getPluginManager().setUsesSeparateProcessForScanning (true);
+    loadPluginBlacklist();
+
     projectFile = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory)
                       .getChildFile ("FD-gPE")
                       .getChildFile ("Projet.tracktionedit");
@@ -1233,6 +1237,54 @@ juce::StringArray EngineHost::getPluginFolders() const
     return result;
 }
 
+juce::File EngineHost::getPluginBlacklistFile() const
+{
+    return juce::File::getSpecialLocation (juce::File::userDocumentsDirectory)
+        .getChildFile ("FD-gPE")
+        .getChildFile ("plugin-blacklist.txt");
+}
+
+void EngineHost::loadPluginBlacklist()
+{
+    const auto ids = juce::StringArray::fromLines (getPluginBlacklistFile().loadFileAsString());
+    auto& list = engine.getPluginManager().knownPluginList;
+
+    for (const auto& id : ids)
+        if (id.isNotEmpty() && ! list.getBlacklistedFiles().contains (id))
+            list.addToBlacklist (id);
+}
+
+void EngineHost::savePluginBlacklist()
+{
+    const auto file = getPluginBlacklistFile();
+    file.getParentDirectory().createDirectory();
+    file.replaceWithText (engine.getPluginManager().knownPluginList.getBlacklistedFiles()
+                              .joinIntoString ("\n"));
+}
+
+bool EngineHost::isPluginBlacklisted (const juce::String& identifier) const
+{
+    return engine.getPluginManager().knownPluginList.getBlacklistedFiles().contains (identifier);
+}
+
+void EngineHost::setPluginBlacklisted (const juce::String& identifier, bool blocked)
+{
+    auto& list = engine.getPluginManager().knownPluginList;
+
+    if (blocked)
+    {
+        list.addToBlacklist (identifier);
+    }
+    else
+    {
+        list.removeFromBlacklist (identifier);
+        // Sinon le prochain scan réinscrirait le plugin depuis ce fichier.
+        engine.getTemporaryFileManager().getTempFile ("FdPluginScanDeadMansPedal").deleteFile();
+    }
+
+    savePluginBlacklist();
+}
+
 void EngineHost::scanForPlugins (const std::function<void (const juce::String&)>& progress)
 {
     auto& pm = engine.getPluginManager();
@@ -1290,7 +1342,26 @@ std::vector<PluginInfo> EngineHost::getAvailablePlugins() const
         info.identifier   = desc.createIdentifierString();
         info.instrument   = desc.isInstrument;
         info.builtIn      = false;
+        info.blacklisted  = isPluginBlacklisted (info.identifier);
         info.description  = desc;
+        result.push_back (info);
+    }
+
+    // Plugins blacklistés : ils n'apparaissent plus dans getTypes(), on les
+    // affiche quand même pour permettre une réhabilitation depuis l'interface.
+    for (const auto& identifier : engine.getPluginManager().knownPluginList.getBlacklistedFiles())
+    {
+        if (identifier.isEmpty())
+            continue;
+
+        PluginInfo info;
+        info.name        = identifier;
+        info.category    = tr ("Bloqué");
+        info.type        = te::ExternalPlugin::xmlTypeName;
+        info.identifier  = identifier;
+        info.instrument  = false;
+        info.builtIn     = false;
+        info.blacklisted = true;
         result.push_back (info);
     }
 
