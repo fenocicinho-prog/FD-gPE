@@ -1067,6 +1067,113 @@ bool EngineHost::stretchAudioClip (te::Clip& clip, double factor)
     return true;
 }
 
+bool EngineHost::cutMidiNotes (te::MidiClip& clip, double seconds)
+{
+    const auto time = clip.getPosition().time;
+    const double start = time.getStart().inSeconds();
+    const double end = time.getEnd().inSeconds();
+
+    // Toutes les validations avant la transaction : rien n'est modifié si la
+    // tête de lecture est en dehors du clip. Les clips bouclés sont refusés :
+    // getContentBeatAtTime() ne replie pas sur la boucle.
+    if (! std::isfinite (seconds) || seconds <= start || seconds >= end || clip.isLooping())
+        return false;
+
+    const double cutBeat = clip.getContentBeatAtTime (te::TimePosition::fromSeconds (seconds)).inBeats();
+    auto& undo = edit->getUndoManager();
+    undo.beginNewTransaction();
+
+    // Copie de la liste : removeNote() modifie la séquence pendant la boucle.
+    const auto notes = clip.getSequence().getNotes();
+
+    for (int i = notes.size() - 1; i >= 0; --i)
+    {
+        auto* note = notes[i];
+        const double noteStart = note->getStartBeat().inBeats();
+        const double noteEnd = noteStart + note->getLengthBeats().inBeats();
+
+        if (noteStart >= cutBeat)
+        {
+            clip.getSequence().removeNote (*note, &undo);
+        }
+        else if (noteEnd > cutBeat)
+        {
+            note->setStartAndLength (te::BeatPosition::fromBeats (noteStart),
+                                     te::BeatDuration::fromBeats (cutBeat - noteStart),
+                                     &undo);
+        }
+    }
+
+    // Le motif s'arrête à la tête de lecture.
+    auto pos = clip.getPosition();
+    pos.time = pos.time.withEnd (te::TimePosition::fromSeconds (seconds));
+    clip.setPosition (pos);
+    return true;
+}
+
+bool EngineHost::insertMidiSpace (te::MidiClip& clip, double seconds, double beats)
+{
+    const auto time = clip.getPosition().time;
+    const double start = time.getStart().inSeconds();
+    const double end = time.getEnd().inSeconds();
+
+    if (! std::isfinite (seconds) || ! std::isfinite (beats) || beats <= 0.0
+        || seconds <= start || seconds >= end || clip.isLooping())
+        return false;
+
+    const double cutBeat = clip.getContentBeatAtTime (te::TimePosition::fromSeconds (seconds)).inBeats();
+
+    // Un beat n'a pas toujours la même durée : on vérifie l'espace au point de
+    // coupe, puis la fin du clip suit le dernier beat décalé (tempo variable).
+    const auto cutTime = clip.getTimeOfContentBeat (te::BeatPosition::fromBeats (cutBeat));
+    const auto shiftedTime = clip.getTimeOfContentBeat (te::BeatPosition::fromBeats (cutBeat + beats));
+    const double spaceSeconds = shiftedTime.inSeconds() - cutTime.inSeconds();
+
+    const double endBeat = clip.getContentBeatAtTime (te::TimePosition::fromSeconds (end)).inBeats();
+    const auto newEnd = clip.getTimeOfContentBeat (te::BeatPosition::fromBeats (endBeat + beats));
+
+    if (! std::isfinite (spaceSeconds) || spaceSeconds <= 0.0
+        || ! std::isfinite (newEnd.inSeconds()) || newEnd.inSeconds() <= end)
+        return false;
+
+    auto& undo = edit->getUndoManager();
+    undo.beginNewTransaction();
+
+    // Copie de la liste : addNote() modifie la séquence pendant la boucle.
+    const auto notes = clip.getSequence().getNotes();
+
+    for (auto* note : notes)
+    {
+        const double noteStart = note->getStartBeat().inBeats();
+        const double noteEnd = noteStart + note->getLengthBeats().inBeats();
+
+        if (noteStart >= cutBeat)
+        {
+            note->setStartAndLength (te::BeatPosition::fromBeats (noteStart + beats),
+                                     te::BeatDuration::fromBeats (noteEnd - noteStart),
+                                     &undo);
+        }
+        else if (noteEnd > cutBeat)
+        {
+            // Note à cheval : on copie d'abord la note entière (couleur,
+            // vélocité de note off, mute), puis on sépare tête et queue.
+            auto* tail = clip.getSequence().addNote (*note, &undo);
+            note->setStartAndLength (te::BeatPosition::fromBeats (noteStart),
+                                     te::BeatDuration::fromBeats (cutBeat - noteStart),
+                                     &undo);
+            tail->setStartAndLength (te::BeatPosition::fromBeats (cutBeat + beats),
+                                     te::BeatDuration::fromBeats (noteEnd - cutBeat),
+                                     &undo);
+        }
+    }
+
+    // Le clip suit le décalage : sa fin recule d'un beat dans son propre repère.
+    auto pos = clip.getPosition();
+    pos.time = pos.time.withEnd (newEnd);
+    clip.setPosition (pos);
+    return true;
+}
+
 void EngineHost::copyClip (te::Clip& clip)
 {
     te::SelectableList selected;

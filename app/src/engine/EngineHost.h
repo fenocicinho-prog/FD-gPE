@@ -196,6 +196,9 @@ public:
     void moveClip (te::Clip&, double deltaSeconds);
     // Étirement audio (thread UI, audio seulement, hauteur conservée).
     bool stretchAudioClip (te::Clip&, double factor);
+    // Édition MIDI sous les notes (thread UI, annulable).
+    bool cutMidiNotes (te::MidiClip&, double seconds);
+    bool insertMidiSpace (te::MidiClip&, double seconds, double beats);
 
     // Édition M2.2 : presse-papiers de clips (UI thread uniquement).
     void copyClip (te::Clip&);

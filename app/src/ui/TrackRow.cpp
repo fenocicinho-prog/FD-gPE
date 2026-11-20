@@ -653,7 +653,11 @@ void TrackRow::showClipMenu (te::Clip& clip, const juce::MouseEvent& e)
     menu.addItem (3, tr ("Supprimer"));
 
     if (dynamic_cast<te::MidiClip*> (&clip) != nullptr)
+    {
         menu.addItem (4, tr ("Ouvrir dans le piano roll"));
+        menu.addItem (7, tr ("COUPER LES NOTES À LA TÊTE"));
+        menu.addItem (8, tr ("FAIRE DE LA PLACE (+1 TEMPS)"));
+    }
 
     if (dynamic_cast<te::AudioClipBase*> (&clip) != nullptr)
     {
@@ -680,6 +684,16 @@ void TrackRow::showClipMenu (te::Clip& clip, const juce::MouseEvent& e)
             case 6:
                 if (host.stretchAudioClip (clip, 0.667))
                     host.saveProject();
+                break;
+            case 7:
+                if (auto* midi = dynamic_cast<te::MidiClip*> (&clip))
+                    if (host.cutMidiNotes (*midi, host.getPositionSeconds()))
+                        host.saveProject();
+                break;
+            case 8:
+                if (auto* midi = dynamic_cast<te::MidiClip*> (&clip))
+                    if (host.insertMidiSpace (*midi, host.getPositionSeconds(), 1.0))
+                        host.saveProject();
                 break;
             default: break;
         }
