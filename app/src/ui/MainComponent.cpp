@@ -471,6 +471,10 @@ bool MainComponent::keyPressed (const juce::KeyPress& key)
 {
     const auto mods = key.getModifiers();
     const int code = key.getKeyCode();
+    // Sous Linux, JUCE renvoie les lettres en minuscules ('z'=122) alors que
+    // les raccourcis sont écrits en majuscules ('Z'=90). On normalise uniquement
+    // pour les comparaisons de lettres ; `code` reste la touche physique.
+    const int letterCode = (int) juce::CharacterFunctions::toUpperCase ((juce::juce_wchar) code);
 
     if (key == juce::KeyPress::spaceKey)
     {
@@ -481,7 +485,7 @@ bool MainComponent::keyPressed (const juce::KeyPress& key)
 
     if (mods.isCommandDown())
     {
-        switch (code)
+        switch (letterCode)
         {
             case 'S':
                 if (mods.isShiftDown())
@@ -562,7 +566,7 @@ bool MainComponent::keyPressed (const juce::KeyPress& key)
             }
         }
 
-        switch (code)
+        switch (letterCode)
         {
             case 'S':
                 if (auto* clip = getSelectedClip (rows))
@@ -594,7 +598,7 @@ bool MainComponent::keyPressed (const juce::KeyPress& key)
                 break;
         }
 
-        if (! mods.isShiftDown() && noteForKeyCode (code) >= 0)
+        if (! mods.isShiftDown() && noteForKeyCode (letterCode) >= 0)
         {
             handleNoteKey (key, true);
             return true;

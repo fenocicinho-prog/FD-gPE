@@ -123,7 +123,9 @@ fenêtre est maintenant créée avec `create()` puis rendue visible : elle est n
       *Code terminé le 20/11* : menu du clip audio **ÉTIRER ×1,5** / **RÉDUIRE ×0,667** ; `EngineHost::stretchAudioClip`
       inactive l'auto-tempo, force le mode SoundTouch (`TimeStretcher::defaultMode`) et utilise `Clip::rescale` avec le
       début du clip comme pivot. Les clips ARA sont refusés (moteur propre, non vérifiable ici). `verifier.sh` sans
-      avertissement, `build_local.sh` OK. **En attente de validation auditive utilisateur.**
+      avertissement, `build_local.sh` OK. Correctif du 20/11 : sous Linux, JUCE renvoie les lettres en
+      minuscules (`'z'`=122) ; les raccourcis (`Ctrl+Z` notamment) comparent désormais le code normalisé
+      en majuscule, comme le bouton **ANNULER**. **En attente de validation auditive utilisateur.**
 
 - [ ] **M2.9 Édition MIDI : couper et faire de la place** : couper des notes et insérer de l'espace dans un
       clip MIDI. *Critère* : on raccourcit un motif MIDI et on décale la suite pour libérer de la place.
