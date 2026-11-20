@@ -132,14 +132,14 @@ fenêtre est maintenant créée avec `create()` puis rendue visible : elle est n
       restent les noms accessibles et des infobulles françaises ont été ajoutées. `verifier.sh` sans avertissement,
       `build_local.sh` OK, revue indépendante sans réserve.
 
-- [ ] **M2.9 Édition MIDI : couper et faire de la place** : couper des notes et insérer de l'espace dans un
+- [x] **M2.9 Édition MIDI : couper et faire de la place** : couper des notes et insérer de l'espace dans un
       clip MIDI. *Critère* : on raccourcit un motif MIDI et on décale la suite pour libérer de la place.
       *Code terminé le 20/11* : menu du clip MIDI **COUPER LES NOTES À LA TÊTE** (supprime ou raccourcit les notes
       après la tête de lecture et arrête le clip à la tête) et **FAIRE DE LA PLACE (+1 TEMPS)** (décale les notes
       suivantes d'un temps, divise une note à cheval en préservant sa couleur et ses vélocités, allonge le clip
       dans son repère tempo, y compris en tempo variable). Une seule transaction d'undo, sauvegarde automatique,
       clips bouclés refusés. `verifier.sh` sans avertissement, `build_local.sh` OK, revue @relecteur finale sans
-      réserve. **En attente de validation utilisateur** (coupe, insertion et annulation).
+      réserve. **Validée par l'utilisateur le 20/11** (« ça marche, on peut continuer »).
 
 ## M3 : plugins
 
