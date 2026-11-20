@@ -273,6 +273,7 @@ d'enregistrement, quand tu ajoutes ou supprimes une piste, et à la fermeture.
 | Ajouter un clip MIDI | Double-clic dans une piste MIDI, ou clic droit → **Nouveau clip MIDI ici** |
 | Couleur d'une piste | Clic droit sur la piste → **Changer la couleur…** |
 | Déplacer / redimensionner un clip | Glisser le clip ; saisir son bord droit pour changer sa durée |
+| Étirer / réduire un clip **audio** | Clic droit sur le clip → **ÉTIRER ×1,5** ou **RÉDUIRE ×0,667** : la durée change, la hauteur du son est conservée (SoundTouch). Les clips MIDI ne sont pas concernés. |
 |Faire un beat de batterie|**PROJET… → Séquenceur de pas…** : cliquez les pads (6 instruments × 16 pas) ; la piste « Batterie » et son clip d'une mesure sont créés au premier clic. **LECTURE** écoute le motif, **EFFACER** vide la grille, **FERMER** replie le panneau|
 |Charger ses propres sons|Dans le séquenceur, cliquez le nom d'un instrument (GROSSE CAISSE, etc.) puis choisissez un WAV/AIFF : il remplace le synthé de la piste « Batterie » et est joué par les pads. Le son reste associé à la note MIDI du pad et est enregistré dans le projet.|
 |Changer l'apparence|**PROJET… → Apparence…** : choisissez **CLAIR** ou **SOMBRE** et un accent (**JAUNE FANÉ** ou **VERT CLAIR**). Le changement est immédiat et enregistré : il reste actif au prochain lancement. Le violet des bordures et témoins suit l'accent. Le mode sombre est en gris neutre (jamais noir).|

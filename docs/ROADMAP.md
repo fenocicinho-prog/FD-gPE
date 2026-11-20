@@ -100,7 +100,7 @@ fenêtre est maintenant créée avec `create()` puis rendue visible : elle est n
       par son), `StepSequencerPanel` ouvre le choix de fichier au clic sur le nom de l'instrument. Sondes
       OK : chargement sans erreur, nom `test_kick` conservé après réouverture du projet, projet nettoyé.
       Limite documentée : le WAV est référencé par son chemin absolu, ne pas le déplacer.
-- [ ] **M2.7 Thèmes de couleurs** : `Palette` devient un thème modifiable (sombre, clair, choix de la couleur
+- [x] **M2.7 Thèmes de couleurs** : `Palette` devient un thème modifiable (sombre, clair, choix de la couleur
       d'accent), enregistré dans les préférences. *Critère* : on change la couleur d'accent sans recompiler.
       *Code terminé le 20/11* : `palette::theme` (références `Colour&` pour garder les 186 usages existants),
       mode clair/sombre + accent R/V/B via **PROJET… → Apparence…**, préférences `fdgpeThemeDark`/`fdgpeAccent`.
@@ -114,8 +114,19 @@ fenêtre est maintenant créée avec `create()` puis rendue visible : elle est n
       Suite du 20/11 (demande utilisateur) : suppression des curseurs R/V/B au profit de deux accents
       prédéfinis « JAUNE FANÉ » et « VERT CLAIR », migration des anciens accents vers le jaune, pistes et
       clips en aplats (plus de dégradé ni de reflet, contour fin, liseré de piste), nom de clip sur fond uni.
-      **En attente de validation utilisateur.** Limite connue : les libellés de certaines fenêtres déjà
-      ouvertes (piano roll, navigateur de plugins, mixeur) gardent leur couleur jusqu'à leur réouverture.
+      **Validée par l'utilisateur le 20/11** (« ça marche »). Limite connue : les libellés de certaines
+      fenêtres déjà ouvertes (piano roll, navigateur de plugins, mixeur) gardent leur couleur jusqu'à
+      leur réouverture.
+
+- [ ] **M2.8 Étirement du temps audio** : changer la durée d'un clip audio sans changer sa hauteur
+      (time-stretch, audio seulement). *Critère* : on étire ou on réduit un clip audio, le son garde sa tonalité.
+      *Code terminé le 20/11* : menu du clip audio **ÉTIRER ×1,5** / **RÉDUIRE ×0,667** ; `EngineHost::stretchAudioClip`
+      inactive l'auto-tempo, force le mode SoundTouch (`TimeStretcher::defaultMode`) et utilise `Clip::rescale` avec le
+      début du clip comme pivot. Les clips ARA sont refusés (moteur propre, non vérifiable ici). `verifier.sh` sans
+      avertissement, `build_local.sh` OK. **En attente de validation auditive utilisateur.**
+
+- [ ] **M2.9 Édition MIDI : couper et faire de la place** : couper des notes et insérer de l'espace dans un
+      clip MIDI. *Critère* : on raccourcit un motif MIDI et on décale la suite pour libérer de la place.
 
 ## M3 : plugins
 

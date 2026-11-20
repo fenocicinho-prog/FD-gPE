@@ -194,6 +194,8 @@ public:
     void deleteClip (te::Clip&);
     void duplicateClip (te::Clip&);
     void moveClip (te::Clip&, double deltaSeconds);
+    // Étirement audio (thread UI, audio seulement, hauteur conservée).
+    bool stretchAudioClip (te::Clip&, double factor);
 
     // Édition M2.2 : presse-papiers de clips (UI thread uniquement).
     void copyClip (te::Clip&);

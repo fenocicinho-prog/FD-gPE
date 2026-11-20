@@ -4,6 +4,7 @@
 #include "../ui/Text.h"
 
 #include <algorithm>
+#include <cmath>
 
 using namespace tracktion::literals;
 
@@ -1029,6 +1030,41 @@ void EngineHost::moveClip (te::Clip& clip, double deltaSeconds)
     position.time = te::TimeRange (te::TimePosition::fromSeconds (position.time.getStart().inSeconds() + deltaSeconds),
                                    position.time.getLength());
     clip.setPosition (position);
+}
+
+bool EngineHost::stretchAudioClip (te::Clip& clip, double factor)
+{
+    // Le time-stretch ne concerne que l'audio : un clip MIDI est laissé intact.
+    auto* audio = dynamic_cast<te::AudioClipBase*> (&clip);
+
+    if (audio == nullptr)
+        return false;
+
+    // Toutes les validations avant la transaction : rien n'est modifié si le
+    // facteur est invalide.
+    if (! std::isfinite (factor) || factor <= 0.01)
+        return false;
+
+    // ARA (Melodyne…) : son moteur gère ses propres temps/hauteurs. Non testable
+    // ici, on refuse plutôt que de risquer une position de clip incohérente.
+    if (te::TimeStretcher::isARA (audio->getTimeStretchMode()))
+        return false;
+
+    edit->getUndoManager().beginNewTransaction();
+
+    // rescale() n'agit sur un clip audio que hors auto-tempo.
+    if (audio->getAutoTempo())
+        audio->setAutoTempo (false);
+
+    // Sans mode explicite, un changement de vitesse changerait la hauteur.
+    // On force le mode par défaut (SoundTouch ici) quand le clip est en
+    // `disabled` : la durée varie, la tonalité reste la même.
+    if (audio->getTimeStretchMode() == te::TimeStretcher::disabled)
+        audio->setTimeStretchMode (te::TimeStretcher::defaultMode);
+
+    // Pivot au début du clip : le début reste fixe, seule la durée change.
+    clip.rescale (clip.getPosition().time.getStart(), factor);
+    return true;
 }
 
 void EngineHost::copyClip (te::Clip& clip)

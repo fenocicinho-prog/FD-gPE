@@ -655,6 +655,12 @@ void TrackRow::showClipMenu (te::Clip& clip, const juce::MouseEvent& e)
     if (dynamic_cast<te::MidiClip*> (&clip) != nullptr)
         menu.addItem (4, tr ("Ouvrir dans le piano roll"));
 
+    if (dynamic_cast<te::AudioClipBase*> (&clip) != nullptr)
+    {
+        menu.addItem (5, tr ("ÉTIRER ×1,5"));
+        menu.addItem (6, tr ("RÉDUIRE ×0,667"));
+    }
+
     if (auto choice = menu.showAt (this, e.x, e.y))
     {
         switch (choice)
@@ -666,6 +672,14 @@ void TrackRow::showClipMenu (te::Clip& clip, const juce::MouseEvent& e)
                 if (auto* midi = dynamic_cast<te::MidiClip*> (&clip))
                     if (callbacks.openPianoRoll)
                         callbacks.openPianoRoll (*midi);
+                break;
+            case 5:
+                if (host.stretchAudioClip (clip, 1.5))
+                    host.saveProject();
+                break;
+            case 6:
+                if (host.stretchAudioClip (clip, 0.667))
+                    host.saveProject();
                 break;
             default: break;
         }
