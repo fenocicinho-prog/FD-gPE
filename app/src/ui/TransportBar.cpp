@@ -57,6 +57,15 @@ TransportBar::TransportBar (EngineHost& h, Callbacks cb)
     setupButton (tempoDownButton, "-");
     setupButton (tempoUpButton, "+");
 
+    // Les libellés restent le nom accessible des boutons ; seuls les glyphes sont peints.
+    FdLookAndFeel::setSymbol (playButton, FdLookAndFeel::ButtonSymbol::play);
+    FdLookAndFeel::setSymbol (recButton, FdLookAndFeel::ButtonSymbol::rec);
+    FdLookAndFeel::setSymbol (loopButton, FdLookAndFeel::ButtonSymbol::loop);
+
+    playButton.setTooltip (tr ("Lancer ou arrêter la lecture."));
+    recButton.setTooltip (tr ("Démarrer ou arrêter l'enregistrement."));
+    loopButton.setTooltip (tr ("Activer ou désactiver la boucle."));
+
     menuButton.setTooltip (tr ("Outils : bibliothèque, piano roll, tempo, export, audio, mixeur, magnétisme."));
     libraryButton.setTooltip (tr ("Ouvrir la bibliothèque de plugins."));
 

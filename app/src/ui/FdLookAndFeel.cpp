@@ -6,6 +6,7 @@ namespace
 {
     const juce::Identifier ledId { "fdLed" };
     const juce::Identifier fontSizeId { "fdFontSize" };
+    const juce::Identifier symbolId { "fdSymbol" };
 }
 
 FdLookAndFeel::FdLookAndFeel()
@@ -91,6 +92,11 @@ void FdLookAndFeel::setFontSize (juce::Button& button, float size)
     button.getProperties().set (fontSizeId, (double) size);
 }
 
+void FdLookAndFeel::setSymbol (juce::Button& button, ButtonSymbol symbol)
+{
+    button.getProperties().set (symbolId, (int) symbol);
+}
+
 bool FdLookAndFeel::hasLed (const juce::Button& button)
 {
     return button.getProperties().contains (ledId);
@@ -99,6 +105,11 @@ bool FdLookAndFeel::hasLed (const juce::Button& button)
 juce::Colour FdLookAndFeel::getLedColour (const juce::Button& button)
 {
     return juce::Colour ((juce::uint32) (juce::int64) button.getProperties().getWithDefault (ledId, (juce::int64) palette::blue.getARGB()));
+}
+
+FdLookAndFeel::ButtonSymbol FdLookAndFeel::getSymbol (const juce::Button& button)
+{
+    return (ButtonSymbol) (int) button.getProperties().getWithDefault (symbolId, (int) ButtonSymbol::none);
 }
 
 void FdLookAndFeel::drawLed (juce::Graphics& g, juce::Rectangle<float> area, juce::Colour colour, bool on)
@@ -198,12 +209,6 @@ juce::Font FdLookAndFeel::getTextButtonFont (juce::TextButton& button, int butto
 
 void FdLookAndFeel::drawButtonText (juce::Graphics& g, juce::TextButton& button, bool, bool down)
 {
-    g.setFont (getTextButtonFont (button, button.getHeight()));
-
-    const bool on = button.getToggleState();
-    g.setColour (! button.isEnabled() ? palette::textFaint
-                                      : (on ? palette::blueBright : palette::text));
-
     auto area = button.getLocalBounds().reduced (3, 2);
 
     if (hasLed (button) && button.getHeight() >= 36)
@@ -211,6 +216,86 @@ void FdLookAndFeel::drawButtonText (juce::Graphics& g, juce::TextButton& button,
 
     if (down)
         area.translate (0, 1);
+
+    const auto symbol = getSymbol (button);
+
+    if (symbol != ButtonSymbol::none)
+    {
+        // Le LED occupe les 12 premiers px : il reste ~28 px de hauteur utile.
+        // 0.72 donne un glyphe d'environ 20 px, lisible sans toucher au LED.
+        const float side = juce::jmin ((float) area.getWidth(), (float) area.getHeight()) * 0.72f;
+        auto box = juce::Rectangle<float> (side, side).withCentre (area.toFloat().getCentre());
+        const float w = box.getWidth();
+        const float h = box.getHeight();
+
+        // Glyphe neutre : en mode sombre, blueBright manque de contraste sur le
+        // fond d'accent d'un bouton activé. L'état « on » reste porté par le
+        // fond, le contour et le LED ; le désactivé garde textFaint.
+        juce::Colour colour = palette::textFaint;
+
+        if (button.isEnabled())
+            colour = (symbol == ButtonSymbol::rec) ? palette::red : palette::text;
+
+        g.setColour (colour);
+
+        switch (symbol)
+        {
+            case ButtonSymbol::play:
+            {
+                juce::Path p;
+                p.addTriangle (box.getX(), box.getY(), box.getRight(), box.getCentreY(),
+                               box.getX(), box.getBottom());
+                g.fillPath (p);
+                break;
+            }
+
+            case ButtonSymbol::rec:
+            {
+                g.fillEllipse (box);
+                // Liseré : détache le disque rouge du fond d'accent, surtout en
+                // mode sombre quand l'enregistrement est actif.
+                g.setColour (palette::text.withAlpha (button.isEnabled() ? 0.75f : 0.35f));
+                g.drawEllipse (box, juce::jmax (1.0f, w * 0.07f));
+                break;
+            }
+
+            case ButtonSymbol::loop:
+            {
+                constexpr float pi = 3.14159265358979323846f;
+                constexpr float diag = 0.7071067811865476f;
+
+                juce::Path arc;
+                arc.addArc (box.getX(), box.getY(), w, h, 0.25f * pi, 1.75f * pi, true);
+                g.strokePath (arc, juce::PathStrokeType (2.0f));
+
+                const float r = w * 0.5f;
+                const float endX = box.getCentreX() - r * diag;
+                const float endY = box.getCentreY() - r * diag;
+                const float len = w * 0.30f;
+                const float half = w * 0.13f;
+                const float tipX = endX + diag * len;
+                const float tipY = endY - diag * len;
+                const float baseX = endX - diag * len * 0.15f;
+                const float baseY = endY + diag * len * 0.15f;
+
+                juce::Path head;
+                head.addTriangle (tipX, tipY,
+                                  baseX + diag * half, baseY + diag * half,
+                                  baseX - diag * half, baseY - diag * half);
+                g.fillPath (head);
+                break;
+            }
+
+            case ButtonSymbol::none:
+                break;
+        }
+
+        return;
+    }
+
+    g.setFont (getTextButtonFont (button, button.getHeight()));
+    g.setColour (! button.isEnabled() ? palette::textFaint
+                                      : (button.getToggleState() ? palette::blueBright : palette::text));
 
     g.drawFittedText (button.getButtonText(), area, juce::Justification::centred, 1);
 }

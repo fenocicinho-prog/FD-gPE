@@ -253,12 +253,12 @@ d'enregistrement, quand tu ajoutes ou supprimes une piste, et à la fermeture.
 
 | Pour faire ça | Fais ça |
 |---|---|
-| Lecture / stop | Bouton **LECTURE**, ou la barre d'espace |
+| Lecture / stop | Bouton **▶** (triangle, au survol « Lancer ou arrêter la lecture »), ou la barre d'espace |
 | Revenir au début | Bouton **\|<** |
-| Enregistrer | Arme une piste avec **ARM**, puis **REC**. REC refuse de démarrer si aucune piste n'est armée |
+| Enregistrer | Arme une piste avec **ARM**, puis le bouton **●** (disque rouge). L'enregistrement refuse de démarrer si aucune piste n'est armée |
 | Enregistrer de l'audio | Piste **AUDIO** armée : entrée 1 de la carte son (mono) |
 | Enregistrer du MIDI | Piste **MIDI** armée : bouton **CLAVIER** de la piste (clavier horizontal jouable), touches A W S E D F T G Y H U J du clavier de l'ordinateur, ou clavier MIDI branché |
-| Boucle / métronome | **BOUCLE** (4 mesures depuis la position courante) et **MÉTRO**. Pour régler la boucle : glisser les deux petites poignées violettes en bas de la règle (avec magnétisme selon le réglage) |
+| Boucle / métronome | Bouton **↻** (flèche circulaire, boucle de 4 mesures depuis la position courante) et **MÉTRO**. Pour régler la boucle : glisser les deux petites poignées violettes en bas de la règle (avec magnétisme selon le réglage) |
 | Tempo | Boutons **-** et **+** à côté de TEMPO |
 | Déplacer la tête de lecture | Clic ou glissé sur la règle (en dehors des poignées de boucle), ou clic dans une piste |
 | Zoom / défilement | Ctrl + molette = zoom ; Maj + molette = défilement horizontal |

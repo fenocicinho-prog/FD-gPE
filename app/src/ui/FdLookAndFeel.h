@@ -13,6 +13,9 @@ class FdLookAndFeel final : public juce::LookAndFeel_V4
 public:
     FdLookAndFeel();
 
+    /** Glyphe dessiné à la place du libellé d'un bouton de transport. */
+    enum class ButtonSymbol { none, play, rec, loop };
+
     /** Réapplique les couleurs courantes de la palette après un changement de thème. */
     void refreshPalette();
 
@@ -41,6 +44,9 @@ public:
     /** Force la taille de police d'un bouton (par exemple le bouton « + »). */
     static void setFontSize (juce::Button&, float size);
 
+    /** Remplace le texte visible d'un bouton par un symbole géométrique. */
+    static void setSymbol (juce::Button&, ButtonSymbol symbol);
+
     /** Dessine une tuile (fond clair, bordure, ombre) utilisée par le navigateur de plugins. */
     static void drawTile (juce::Graphics&, juce::Rectangle<float>, bool selected, bool hovered);
 
@@ -48,6 +54,7 @@ private:
     static void drawLed (juce::Graphics&, juce::Rectangle<float>, juce::Colour, bool on);
     static bool hasLed (const juce::Button&);
     static juce::Colour getLedColour (const juce::Button&);
+    static ButtonSymbol getSymbol (const juce::Button&);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FdLookAndFeel)
 };

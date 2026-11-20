@@ -118,14 +118,19 @@ fenêtre est maintenant créée avec `create()` puis rendue visible : elle est n
       fenêtres déjà ouvertes (piano roll, navigateur de plugins, mixeur) gardent leur couleur jusqu'à
       leur réouverture.
 
-- [ ] **M2.8 Étirement du temps audio** : changer la durée d'un clip audio sans changer sa hauteur
+- [x] **M2.8 Étirement du temps audio** : changer la durée d'un clip audio sans changer sa hauteur
       (time-stretch, audio seulement). *Critère* : on étire ou on réduit un clip audio, le son garde sa tonalité.
       *Code terminé le 20/11* : menu du clip audio **ÉTIRER ×1,5** / **RÉDUIRE ×0,667** ; `EngineHost::stretchAudioClip`
       inactive l'auto-tempo, force le mode SoundTouch (`TimeStretcher::defaultMode`) et utilise `Clip::rescale` avec le
       début du clip comme pivot. Les clips ARA sont refusés (moteur propre, non vérifiable ici). `verifier.sh` sans
       avertissement, `build_local.sh` OK. Correctif du 20/11 : sous Linux, JUCE renvoie les lettres en
       minuscules (`'z'`=122) ; les raccourcis (`Ctrl+Z` notamment) comparent désormais le code normalisé
-      en majuscule, comme le bouton **ANNULER**. **En attente de validation auditive utilisateur.**
+      en majuscule, comme le bouton **ANNULER**. **Validée par l'utilisateur le 20/11** (« l'étirement marche »,
+      « on continue »).
+      Interface du 20/11 (suite M2.7, demande utilisateur) : **LECTURE**, **REC** et **BOUCLE** sont désormais
+      dessinés comme des symboles géométriques (triangle, disque, arc fléché), sans libellé visible ; les textes
+      restent les noms accessibles et des infobulles françaises ont été ajoutées. `verifier.sh` sans avertissement,
+      `build_local.sh` OK, revue indépendante sans réserve.
 
 - [ ] **M2.9 Édition MIDI : couper et faire de la place** : couper des notes et insérer de l'espace dans un
       clip MIDI. *Critère* : on raccourcit un motif MIDI et on décale la suite pour libérer de la place.
