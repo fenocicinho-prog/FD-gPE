@@ -73,6 +73,10 @@ private:
     EngineHost host;
     TimelineModel model;
 
+    // Doit précéder transport : la barre copie des couleurs de la palette à la
+    // construction, donc le thème enregistré doit être appliqué avant elle.
+    const int themeReady;
+
     TransportBar transport;
     TimelineRuler ruler;
     juce::Viewport viewport;

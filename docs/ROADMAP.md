@@ -106,6 +106,11 @@ fenêtre est maintenant créée avec `create()` puis rendue visible : elle est n
       mode clair/sombre + accent R/V/B via **PROJET… → Apparence…**, préférences `fdgpeThemeDark`/`fdgpeAccent`.
       Le LookAndFeel est rafraîchi avec le thème ; le violet des bordures/témoins dérive de l'accent. Sondes OK
       (thème sombre, accent conservé, libellé du LookAndFeel aligné sur la palette), sondes retirées.
+      Correctif du 20/11 : le mode sombre utilise des gris neutres (type Firefox, jamais noir), le thème
+      est appliqué **avant** la construction des composants (la barre de transport gardait des couleurs
+      claires invisibles en sombre), et les surcharges de couleurs des composants sont retirées lors d'un
+      changement à chaud pour retomber sur le LookAndFeel rafraîchi. Sonde : texte de la transport bar =
+      `fff9f9ff` au lancement en sombre.
       **En attente de validation utilisateur.** Limite connue : les libellés de certaines fenêtres déjà
       ouvertes (piano roll, navigateur de plugins, mixeur) gardent leur couleur jusqu'à leur réouverture.
 

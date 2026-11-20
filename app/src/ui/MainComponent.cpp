@@ -122,6 +122,29 @@ public:
 private:
     static void refreshTree (juce::Component& c)
     {
+        // Les composants qui ont appelé setColour() gardent une copie de
+        // l'ancien thème. On retire ces surcharges : ils retombent sur le
+        // LookAndFeel, qui vient d'être rafraîchi avec la nouvelle palette.
+        static const int colourIds[] = {
+            juce::Label::textColourId, juce::Label::textWhenEditingColourId,
+            juce::Label::backgroundColourId, juce::Label::backgroundWhenEditingColourId,
+            juce::TextEditor::backgroundColourId, juce::TextEditor::textColourId,
+            juce::TextEditor::outlineColourId, juce::TextEditor::focusedOutlineColourId,
+            juce::TextButton::buttonColourId, juce::TextButton::buttonOnColourId,
+            juce::TextButton::textColourOffId, juce::TextButton::textColourOnId,
+            juce::ComboBox::backgroundColourId, juce::ComboBox::textColourId,
+            juce::ComboBox::outlineColourId,
+            juce::MidiKeyboardComponent::keyDownOverlayColourId,
+            juce::MidiKeyboardComponent::mouseOverKeyOverlayColourId,
+            juce::MidiKeyboardComponent::shadowColourId,
+            juce::MidiKeyboardComponent::upDownButtonBackgroundColourId,
+            juce::MidiKeyboardComponent::upDownButtonArrowColourId
+        };
+
+        for (int id : colourIds)
+            if (c.isColourSpecified (id))
+                c.removeColour (id);
+
         c.repaint();
 
         for (int i = 0; i < c.getNumChildComponents(); ++i)
@@ -314,7 +337,13 @@ private:
 } // namespace
 
 MainComponent::MainComponent()
-    : transport (host, {
+    : themeReady ([this]
+      {
+          const auto saved = host.loadTheme();
+          palette::theme.apply (saved.first, saved.second);
+          return 0;
+      }()),
+      transport (host, {
           [this] { startRecording(); },
           [this] { showAudioSettings(); },
           [this] { PluginBrowser::show (host, getFocusedTrack()); },
@@ -331,9 +360,8 @@ MainComponent::MainComponent()
       ruler (host, model, [this] (double s) { seek (s); }),
       overlay (model)
 {
-    // Thème enregistré : appliqué avant la première peinture.
-    const auto savedTheme = host.loadTheme();
-    palette::theme.apply (savedTheme.first, savedTheme.second);
+    // Le thème est déjà appliqué par `themeReady`, avant la construction des
+    // composants ; on synchronise seulement le LookAndFeel avant la 1re peinture.
     refreshLookAndFeel();
 
     model.changed = [this]

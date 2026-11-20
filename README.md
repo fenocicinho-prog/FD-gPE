@@ -275,7 +275,7 @@ d'enregistrement, quand tu ajoutes ou supprimes une piste, et à la fermeture.
 | Déplacer / redimensionner un clip | Glisser le clip ; saisir son bord droit pour changer sa durée |
 |Faire un beat de batterie|**PROJET… → Séquenceur de pas…** : cliquez les pads (6 instruments × 16 pas) ; la piste « Batterie » et son clip d'une mesure sont créés au premier clic. **LECTURE** écoute le motif, **EFFACER** vide la grille, **FERMER** replie le panneau|
 |Charger ses propres sons|Dans le séquenceur, cliquez le nom d'un instrument (GROSSE CAISSE, etc.) puis choisissez un WAV/AIFF : il remplace le synthé de la piste « Batterie » et est joué par les pads. Le son reste associé à la note MIDI du pad et est enregistré dans le projet.|
-|Changer l'apparence|**PROJET… → Apparence…** : choisissez **CLAIR** ou **SOMBRE** et règlez les curseurs **ROUGE/VERT/BLEU** de la couleur d'accent. Le changement est immédiat et enregistré : il reste actif au prochain lancement. Le violet des bordures et témoins suit l'accent.|
+|Changer l'apparence|**PROJET… → Apparence…** : choisissez **CLAIR** ou **SOMBRE** et règlez les curseurs **ROUGE/VERT/BLEU** de la couleur d'accent. Le changement est immédiat et enregistré : il reste actif au prochain lancement. Le violet des bordures et témoins suit l'accent. Le mode sombre est en gris neutre (jamais noir).|
 |Éditer des notes MIDI|Double-clic sur un clip MIDI, ou **MENU → Piano roll** : l'éditeur s'ouvre intégré au niveau de la piste ; **FERMER** pour le replier|
 |Jouer une note MIDI|Bouton **CLAVIER** de la piste MIDI, ou touches de l'ordinateur : la note part vers la piste MIDI sélectionnée|
 |Revenir en arrière dans le temps|Faire défiler avec la molette sur la règle, ou cliquer sur la règle pour recentrer la tête de lecture|

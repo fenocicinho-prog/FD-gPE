@@ -119,7 +119,7 @@ void FdLookAndFeel::drawLed (juce::Graphics& g, juce::Rectangle<float> area, juc
                                               area.getX(), area.getBottom(), false));
     g.fillEllipse (area);
 
-    g.setColour (juce::Colours::white.withAlpha (on ? 0.55f : 0.7f));
+    g.setColour (palette::panelHi.withAlpha (on ? 0.55f : 0.7f));
     g.fillEllipse (area.reduced (area.getWidth() * 0.22f).translated (0.0f, -area.getHeight() * 0.12f));
 }
 
@@ -162,10 +162,10 @@ void FdLookAndFeel::drawButtonBackground (juce::Graphics& g, juce::Button& butto
     g.setGradientFill (juce::ColourGradient (top, 0.0f, r.getY(), bottom, 0.0f, r.getBottom(), false));
     g.fillRoundedRectangle (r, corner);
 
-    // reflet en haut : c'est ce qui donne l'aspect "brillant"
-    g.setColour (juce::Colours::white.withAlpha (0.95f));
+    // reflet en haut : blanc en mode clair, gris clair en mode sombre.
+    g.setColour (palette::panelHi.withAlpha (0.9f));
     g.drawLine (r.getX() + corner, r.getY() + 1.0f, r.getRight() - corner, r.getY() + 1.0f, 1.0f);
-    g.setColour (juce::Colours::white.withAlpha (down ? 0.05f : 0.45f));
+    g.setColour (palette::panelHi.withAlpha (down ? 0.05f : 0.4f));
     g.fillRoundedRectangle (r.withHeight (r.getHeight() * 0.44f).reduced (1.0f, 1.0f), corner - 1.0f);
 
     // état actif : teinte bleue
@@ -202,7 +202,7 @@ void FdLookAndFeel::drawButtonText (juce::Graphics& g, juce::TextButton& button,
 
     const bool on = button.getToggleState();
     g.setColour (! button.isEnabled() ? palette::textFaint
-                                      : (on ? palette::blue : palette::text));
+                                      : (on ? palette::blueBright : palette::text));
 
     auto area = button.getLocalBounds().reduced (3, 2);
 
@@ -274,7 +274,7 @@ void FdLookAndFeel::drawComboBox (juce::Graphics& g, int width, int height, bool
     g.fillRoundedRectangle (r, 5.0f);
     g.setColour (palette::outline);
     g.drawRoundedRectangle (r, 5.0f, 1.0f);
-    g.setColour (juce::Colours::white.withAlpha (0.8f));
+    g.setColour (palette::panelHi.withAlpha (0.8f));
     g.drawLine (r.getX() + 5.0f, r.getY() + 1.0f, r.getRight() - 5.0f, r.getY() + 1.0f, 1.0f);
 
     auto arrow = juce::Rectangle<int> (buttonX, buttonY, buttonW, buttonH).toFloat();
@@ -312,7 +312,7 @@ void FdLookAndFeel::drawTile (juce::Graphics& g, juce::Rectangle<float> r, bool 
     g.setColour (juce::Colours::black.withAlpha (0.08f));
     g.fillRoundedRectangle (r.translated (0.0f, 2.0f), 10.0f);
 
-    g.setGradientFill (juce::ColourGradient (hovered ? juce::Colours::white : palette::panelHi,
+    g.setGradientFill (juce::ColourGradient (hovered ? palette::panelHi.brighter (0.08f) : palette::panelHi,
                                              0.0f, r.getY(),
                                              hovered ? palette::blueFaint : palette::panel,
                                              0.0f, r.getBottom(), false));
@@ -321,7 +321,7 @@ void FdLookAndFeel::drawTile (juce::Graphics& g, juce::Rectangle<float> r, bool 
     g.setColour (selected ? palette::blue : palette::outline);
     g.drawRoundedRectangle (r.reduced (0.5f), 10.0f, selected ? 2.0f : 1.0f);
 
-    g.setColour (juce::Colours::white.withAlpha (0.9f));
+    g.setColour (palette::panelHi.withAlpha (0.9f));
     g.drawLine (r.getX() + 10.0f, r.getY() + 1.0f, r.getRight() - 10.0f, r.getY() + 1.0f, 1.0f);
 }
 } // namespace fdgpe

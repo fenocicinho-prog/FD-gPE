@@ -63,22 +63,24 @@ struct Theme
     {
         if (dark)
         {
-            bgTop        = c (0xff10121a);
-            bgBottom     = c (0xff181b26);
-            panel        = c (0xff1d2130);
-            panelHi      = c (0xff282d3f);
-            lane         = c (0xff12151f);
-            laneAlt      = c (0xff1a1e2b);
-            line         = c (0xff33394d);
-            outline      = c (0xff4a5168);
-            text         = c (0xfff0f2f8);
-            textDim      = c (0xffb0b6c8);
-            textFaint    = c (0xff7b8298);
-            buttonTop    = c (0xff2a3044);
-            buttonBottom = c (0xff1d2231);
-            buttonHover  = c (0xff353c53);
-            buttonDown   = c (0xff141824);
-            midiClip     = c (0xff163a30);
+            // Gris neutres (inspirés du thème sombre de Firefox), jamais noirs :
+            // les textes et les boutons restent lisibles sur toute la surface.
+            bgTop        = c (0xff23222b);
+            bgBottom     = c (0xff1c1b22);
+            panel        = c (0xff2b2a33);
+            panelHi      = c (0xff38373f);
+            lane         = c (0xff24232c);
+            laneAlt      = c (0xff2e2d36);
+            line         = c (0xff494857);
+            outline      = c (0xff5a5968);
+            text         = c (0xfff9f9ff);
+            textDim      = c (0xffc6c5cf);
+            textFaint    = c (0xff9d9caa);
+            buttonTop    = c (0xff4b4a56);
+            buttonBottom = c (0xff38373f);
+            buttonHover  = c (0xff585764);
+            buttonDown   = c (0xff2c2b34);
+            midiClip     = c (0xff25483f);
         }
         else
         {
