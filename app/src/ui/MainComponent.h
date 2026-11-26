@@ -13,6 +13,7 @@
 #include "PianoRollEditor.h"
 #include "StepSequencerPanel.h"
 #include "TimelineRuler.h"
+#include "MixerDock.h"
 #include "TrackRow.h"
 #include "TransportBar.h"
 
@@ -61,7 +62,7 @@ private:
     void exportProjectAdvanced();
     void addMarker();
     void showPluginEditor (te::Plugin&);
-    void showStepSequencer();
+    void showStepSequencer (te::AudioTrack* target = nullptr);
     void showThemePanel();
     void handleNoteKey (const juce::KeyPress&, bool down);
     void releaseHeldKeys();
@@ -85,6 +86,9 @@ private:
     PlayheadOverlay overlay;
 
     juce::TextButton addTrackButton { "+" }, projectButton;
+    juce::Label statusBar;
+    std::unique_ptr<MixerDock> mixerDock;
+    bool mixerVisible = true;
 
     std::unique_ptr<juce::DialogWindow> audioSettingsWindow;
     std::unique_ptr<juce::DialogWindow> keyboardWindow;

@@ -37,9 +37,33 @@ int PluginStrip::tileCount() const
 
 juce::Rectangle<int> PluginStrip::tileBounds (int index) const
 {
+    if (vertical)
+    {
+        // Les tuiles se serrent pour que « + » reste toujours visible.
+        const int gap = 3;
+        const int n = tileCount();
+        const int tileH = juce::jlimit (14, 22, (getHeight() - gap * (n - 1)) / juce::jmax (1, n));
+        return juce::Rectangle<int> (0, index * (tileH + gap), getWidth(), tileH);
+    }
+
     const int tileW = 88;
     const int gap = 5;
     return juce::Rectangle<int> (index * (tileW + gap), 0, tileW, getHeight());
+}
+
+int PluginStrip::indexAt (juce::Point<int> p) const
+{
+    for (int i = 0; i < tileCount(); ++i)
+        if (tileBounds (i).contains (p))
+            return i;
+
+    return -1;
+}
+
+void PluginStrip::setVertical (bool shouldBeVertical)
+{
+    vertical = shouldBeVertical;
+    repaint();
 }
 
 void PluginStrip::refresh()
@@ -130,7 +154,7 @@ void PluginStrip::mouseExit (const juce::MouseEvent&)
 
 void PluginStrip::mouseDown (const juce::MouseEvent& e)
 {
-    const int index = e.x / 93;
+    const int index = indexAt (e.getPosition());
 
     if (index < 0 || index >= tileCount() || ! tileBounds (index).contains (e.getPosition()))
         return;
@@ -194,7 +218,7 @@ void PluginStrip::mouseDown (const juce::MouseEvent& e)
 
 void PluginStrip::mouseDoubleClick (const juce::MouseEvent& e)
 {
-    const int index = e.x / 93;
+    const int index = indexAt (e.getPosition());
     auto plugins = host.getTrackPlugins (track);
 
     if (index >= 0 && index < (int) plugins.size() && plugins[(std::size_t) index] != nullptr && callbacks.editor)
@@ -217,7 +241,7 @@ TrackRow::TrackRow (EngineHost& h, te::AudioTrack& t, TimelineModel& m, Callback
                      palette::textDim, juce::Justification::centred);
 
     nameLabel.setText (track.getName(), juce::dontSendNotification);
-    nameLabel.setFont (juce::Font (juce::FontOptions (16.0f, juce::Font::bold)));
+    nameLabel.setFont (juce::Font (juce::FontOptions (13.0f, juce::Font::bold)));
     nameLabel.setEditable (false, true);
     nameLabel.onTextChange = [this]
     {
@@ -248,10 +272,23 @@ TrackRow::TrackRow (EngineHost& h, te::AudioTrack& t, TimelineModel& m, Callback
     soloButton.onClick = [this] { track.setSolo (! track.isSolo (false));  refreshControls(); };
     deleteButton.onClick = [this] { if (callbacks.remove) callbacks.remove (track); };
 
+    const bool drum = host.isDrumTrack (track);
     keyboardButton.setVisible (host.isMidiTrack (track));
+    keyboardButton.setButtonText (drum ? tr ("PAS") : tr ("CLAV."));
     keyboardButton.setColour (juce::TextButton::buttonColourId, palette::panelHi);
     keyboardButton.setColour (juce::TextButton::textColourOffId, palette::text);
-    keyboardButton.onClick = [this] { if (callbacks.openKeyboard) callbacks.openKeyboard (track); };
+    keyboardButton.onClick = [this]
+    {
+        if (host.isDrumTrack (track))
+        {
+            if (callbacks.openKeyboard)
+                callbacks.openKeyboard (track); // dispatché par MainComponent (clavier ou pas à pas)
+        }
+        else if (callbacks.openKeyboard)
+        {
+            callbacks.openKeyboard (track);
+        }
+    };
 
     volumeSlider.setSliderStyle (juce::Slider::LinearHorizontal);
     volumeSlider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
@@ -279,6 +316,13 @@ TrackRow::TrackRow (EngineHost& h, te::AudioTrack& t, TimelineModel& m, Callback
                                 (juce::Component*) &volumeSlider, (juce::Component*) &panSlider, (juce::Component*) &pluginStrip })
         addAndMakeVisible (c);
 
+    // Le compact : pan, plugins et type de piste vivent dans la tranche du mixeur.
+    kindLabel.setVisible (false);
+    volLabel.setVisible (false);
+    panLabel.setVisible (false);
+    panSlider.setVisible (false);
+    pluginStrip.setVisible (false);
+
     if (auto* meter = track.getLevelMeterPlugin())
         meter->measurer.addClient (meterClient);
 
@@ -299,58 +343,46 @@ juce::Rectangle<int> TrackRow::getLaneBounds() const
 
 void TrackRow::resized()
 {
-    auto header = getLocalBounds().removeFromLeft (headerWidth).reduced (10, 8);
+    auto header = getLocalBounds().removeFromLeft (headerWidth).reduced (10, 7);
+    header.removeFromLeft (4);   // liseré de couleur de piste
 
-    meterBounds = header.removeFromRight (8);
-    header.removeFromRight (10);
+    meterBounds = header.removeFromRight (6);
+    header.removeFromRight (8);
 
-    auto row1 = header.removeFromTop (22);
-    kindLabel.setBounds (row1.removeFromLeft (48));
-    row1.removeFromLeft (8);
-    deleteButton.setBounds (row1.removeFromRight (24));
-    row1.removeFromRight (6);
+    auto row1 = header.removeFromTop (20);
+    deleteButton.setBounds (row1.removeFromRight (20));
+    row1.removeFromRight (4);
     nameLabel.setBounds (row1);
 
-    header.removeFromTop (8);
-    auto row2 = header.removeFromTop (28);
+    header.removeFromTop (6);
+    auto row2 = header.removeFromTop (22);
 
     if (host.isMidiTrack (track))
     {
-        keyboardButton.setBounds (row2.removeFromRight (76));
-        row2.removeFromRight (6);
+        keyboardButton.setBounds (row2.removeFromRight (46));
+        row2.removeFromRight (4);
     }
 
-    const int bw = (row2.getWidth() - 12) / 3;
-    armButton.setBounds (row2.removeFromLeft (bw));
-    row2.removeFromLeft (6);
-    muteButton.setBounds (row2.removeFromLeft (bw));
-    row2.removeFromLeft (6);
-    soloButton.setBounds (row2.removeFromLeft (bw));
+    armButton.setBounds (row2.removeFromLeft (38));
+    row2.removeFromLeft (4);
+    muteButton.setBounds (row2.removeFromLeft (24));
+    row2.removeFromLeft (4);
+    soloButton.setBounds (row2.removeFromLeft (24));
 
-    header.removeFromTop (10);
-    auto row3 = header.removeFromTop (22);
-    volLabel.setBounds (row3.removeFromLeft (26));
-    volumeSlider.setBounds (row3.removeFromLeft (row3.getWidth() * 55 / 100));
-    row3.removeFromLeft (8);
-    panLabel.setBounds (row3.removeFromLeft (26));
-    panSlider.setBounds (row3);
-
-    header.removeFromTop (12);
-    auto stripLabel = header.removeFromTop (14);
-
-    pluginStrip.setBounds (header.removeFromTop (30));
-
-    // Le petit titre est dessiné dans paint().
-    juce::ignoreUnused (stripLabel);
+    header.removeFromTop (6);
+    volumeSlider.setBounds (header.removeFromTop (16));
 }
 
 void TrackRow::refreshControls()
 {
     const bool armed = host.isTrackArmed (track);
+    const bool drum = host.isDrumTrack (track);
 
     armButton.setToggleState (armed, juce::dontSendNotification);
     muteButton.setToggleState (track.isMuted (false), juce::dontSendNotification);
     soloButton.setToggleState (track.isSolo (false), juce::dontSendNotification);
+    keyboardButton.setButtonText (drum ? tr ("PAS") : tr ("CLAV."));
+    keyboardButton.setVisible (host.isMidiTrack (track));
 
     if (auto* vp = track.getVolumePlugin())
     {
@@ -403,18 +435,12 @@ void TrackRow::paint (juce::Graphics& g)
 {
     auto header = getLocalBounds().removeFromLeft (headerWidth).toFloat();
 
-    // Aplat sans reflet : en-tête de piste lisible, comme un DAW classique.
     g.setColour (palette::panel);
     g.fillRect (header);
 
-    g.setColour (palette::line);
-    g.drawHorizontalLine (0, header.getX(), header.getRight());
-
-    // titre du bandeau de plugins
-    g.setColour (palette::textDim);
-    g.setFont (juce::Font (juce::FontOptions (9.5f, juce::Font::bold)));
-    g.drawText (tr ("PLUGINS"), header.getX() + 10.0f, header.getBottom() - 48.0f, 100.0f, 12.0f,
-                juce::Justification::centredLeft);
+    // Liseré de la couleur de piste, comme les clips.
+    g.setColour (host.getTrackColour (track));
+    g.fillRect (header.getX(), header.getY() + 1.0f, 3.0f, header.getHeight() - 1.0f);
 
     paintMeter (g);
 
@@ -430,25 +456,25 @@ void TrackRow::paint (juce::Graphics& g)
 
     g.setColour (palette::line);
     g.drawHorizontalLine (getHeight() - 1, 0.0f, (float) getWidth());
-    g.setColour (palette::outline);
+    g.setColour (palette::line);
     g.drawVerticalLine (headerWidth - 1, 0.0f, (float) getHeight());
 }
 
 void TrackRow::paintMeter (juce::Graphics& g)
 {
-    const auto r = meterBounds.toFloat().reduced (0.0f, 2.0f);
-    const int segments = 18;
-    const float gap = 1.5f;
+    const auto r = meterBounds.toFloat().reduced (0.0f, 1.0f);
+    const int segments = 14;
+    const float gap = 1.0f;
     const float segH = (r.getHeight() - gap * (float) (segments - 1)) / (float) segments;
     const int lit = juce::roundToInt (meterLevel * (float) segments);
 
     for (int i = 0; i < segments; ++i)
     {
         const float y = r.getBottom() - (float) (i + 1) * segH - (float) i * gap;
-        const auto colour = i < 13 ? palette::green : (i < 16 ? palette::amber : palette::red);
+        const auto colour = i < 10 ? palette::blue : (i < 12 ? palette::amber : palette::red);
 
         g.setColour (i < lit ? colour : palette::line);
-        g.fillRoundedRectangle (r.getX(), y, r.getWidth(), segH, 1.0f);
+        g.fillRect (r.getX(), y, r.getWidth(), segH);
     }
 }
 
@@ -470,7 +496,7 @@ void TrackRow::paintLane (juce::Graphics& g, juce::Rectangle<int> lane)
 
     if (secondsPerBar * model.pixelsPerSecond >= 10.0)
     {
-        g.setColour (palette::outline.withAlpha (0.28f));
+        g.setColour (palette::outline.withAlpha (0.45f));
 
         for (double t = std::floor (model.startSeconds / secondsPerBar) * secondsPerBar; ; t += secondsPerBar)
         {
@@ -484,9 +510,9 @@ void TrackRow::paintLane (juce::Graphics& g, juce::Rectangle<int> lane)
     }
 
     const auto bounds = lane.toFloat();
-    const bool midiTrack = host.isMidiTrack (track);
-    const auto base = midiTrack ? palette::midiClipHi : palette::audioClipHi;
     const auto accent = host.getTrackColour (track);
+    const auto base = accent.darker (0.55f);          // fond du clip
+    const auto ink  = accent.brighter (0.35f);        // forme d'onde et notes
 
     for (auto* clip : clips)
     {
@@ -497,18 +523,14 @@ void TrackRow::paintLane (juce::Graphics& g, juce::Rectangle<int> lane)
         if (x2 < bounds.getX() || x1 > bounds.getRight())
             continue;
 
-        juce::Rectangle<float> r (x1, bounds.getY() + 10.0f, juce::jmax (4.0f, x2 - x1), bounds.getHeight() - 20.0f);
+        juce::Rectangle<float> r (x1, bounds.getY() + 5.0f, juce::jmax (4.0f, x2 - x1), bounds.getHeight() - 10.0f);
         const bool selected = (clip == selectedClip);
 
-        // Clip plat : une couleur unie, un liseré fin ; pas de dégradé brillant.
+        // Clip à plat, couleur de piste ; sélection = contour clair.
         g.setColour (base);
         g.fillRect (r);
 
-        // Liseré de couleur de piste : dessiné avant le contour pour ne pas le masquer.
-        g.setColour (accent);
-        g.fillRect (r.getX(), r.getY(), 3.0f, r.getHeight());
-
-        g.setColour (selected ? palette::violet : palette::outline);
+        g.setColour (selected ? palette::text : accent.withAlpha (0.55f));
         g.drawRect (r.reduced (0.5f), selected ? 2.0f : 1.0f);
 
         // Contenu réel du clip : forme d'onde pour l'audio, notes pour le MIDI.
@@ -534,7 +556,7 @@ void TrackRow::paintLane (juce::Graphics& g, juce::Rectangle<int> lane)
                 if (! notes.empty())
                 {
                     const int span = juce::jmax (12, highest - lowest + 1);
-                    const float noteH = juce::jmax (1.5f, (r.getHeight() - 22.0f) / (float) span);
+                    const float noteH = juce::jmax (1.5f, (r.getHeight() - 14.0f) / (float) span);
 
                     for (const auto& n : notes)
                     {
@@ -542,31 +564,21 @@ void TrackRow::paintLane (juce::Graphics& g, juce::Rectangle<int> lane)
                         const float nw = juce::jmax (1.5f, (float) (n.lengthBeats / clipLengthBeats) * r.getWidth());
                         const float ny = r.getBottom() - 4.0f
                                        - (float) (n.pitch - lowest + 1) * noteH;
-                        g.setColour (palette::text.withAlpha (0.80f));
+                        g.setColour (ink);
                         g.fillRoundedRectangle (nx, ny, nw, juce::jmax (1.2f, noteH - 0.8f), 1.0f);
                     }
                 }
             }
             else if (dynamic_cast<te::AudioClipBase*> (clip) != nullptr)
             {
-                drawWaveform (g, *clip, r.reduced (1.0f, 0.0f));
+                drawWaveform (g, *clip, r.reduced (1.0f, 0.0f), ink);
             }
         }
 
-        // Fond uni derrière le nom : le texte reste lisible sur un clip jaune
-        // en mode clair comme sur un clip vert en mode sombre, sans dégradé.
-        const auto textArea = r.toNearestInt().reduced (8, 4);
-        const auto labelArea = textArea.withHeight (18);
-
-        if (! labelArea.isEmpty())
-        {
-            g.setColour (palette::panel.withAlpha (0.85f));
-            g.fillRect (labelArea);
-        }
-
-        g.setColour (palette::text);
-        g.setFont (juce::Font (juce::FontOptions (12.0f, juce::Font::bold)));
-        g.drawFittedText (clip->getName(), labelArea, juce::Justification::topLeft, 1);
+        g.setColour (juce::Colours::white.withAlpha (0.9f));
+        g.setFont (juce::Font (juce::FontOptions (10.5f, juce::Font::bold)));
+        g.drawFittedText (clip->getName(), r.toNearestInt().reduced (5, 2).withHeight (14),
+                          juce::Justification::topLeft, 1);
     }
 
     // Enregistrement en cours
@@ -583,7 +595,7 @@ void TrackRow::paintLane (juce::Graphics& g, juce::Rectangle<int> lane)
     }
 }
 
-void TrackRow::drawWaveform (juce::Graphics& g, te::Clip& clip, juce::Rectangle<float> area)
+void TrackRow::drawWaveform (juce::Graphics& g, te::Clip& clip, juce::Rectangle<float> area, juce::Colour ink)
 {
     auto* audio = dynamic_cast<te::AudioClipBase*> (&clip);
 
@@ -629,7 +641,7 @@ void TrackRow::drawWaveform (juce::Graphics& g, te::Clip& clip, juce::Rectangle<
     const auto range = te::TimeRange (te::TimePosition::fromSeconds (sourceStart),
                                       te::TimeDuration::fromSeconds (sourceEnd - sourceStart));
 
-    g.setColour (palette::text.withAlpha (0.80f));
+    g.setColour (ink);
     thumbnail->drawChannels (g, visible.toNearestInt(), range, 0.9f);
 }
 

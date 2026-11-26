@@ -35,7 +35,7 @@ void TimelineRuler::paint (juce::Graphics& g)
 {
     auto r = getLocalBounds().toFloat();
 
-    g.setGradientFill (juce::ColourGradient (palette::panelHi, 0.0f, 0.0f, palette::panel, 0.0f, r.getBottom(), false));
+    g.setColour (palette::panel);
     g.fillRect (r);
 
     // Témoin discret de la zone de boucle : très pâle quand la boucle est coupée,
@@ -46,11 +46,11 @@ void TimelineRuler::paint (juce::Graphics& g)
 
     if (loopRight > loopX && loopX < r.getRight() && loopRight > 0.0f)
     {
-        g.setColour (palette::violet.withAlpha (host.isLooping() ? 0.16f : 0.08f));
+        g.setColour (palette::blue.withAlpha (host.isLooping() ? 0.30f : 0.12f));
         g.fillRect (loopX, 0.0f, loopRight - loopX, r.getHeight() - 1.0f);
     }
 
-    g.setColour (palette::blueSoft.withAlpha (0.55f));
+    g.setColour (palette::line);
     g.drawHorizontalLine (getHeight() - 1, 0.0f, r.getRight());
 
     const double secondsPerBeat = 60.0 / host.getTempoBpm();
@@ -131,11 +131,11 @@ void TimelineRuler::drawLoopHandle (juce::Graphics& g, float x) const
     const float y = (float) getHeight() - (float) handleHeight - 1.0f;
     const float centre = (float) juce::roundToInt (x);
 
-    g.setColour (palette::violet);
+    g.setColour (palette::amber);
     g.fillRoundedRectangle (centre - 4.0f, y, 8.0f, (float) handleHeight, 2.0f);
 
     // Deux petits traits clairs : une poignée, pas la tête de lecture.
-    g.setColour (palette::violetSoft);
+    g.setColour (palette::bgDeep);
     g.drawVerticalLine (juce::roundToInt (centre) - 1, y + 3.0f, y + (float) handleHeight - 3.0f);
     g.drawVerticalLine (juce::roundToInt (centre) + 1, y + 3.0f, y + (float) handleHeight - 3.0f);
 }

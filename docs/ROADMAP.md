@@ -15,6 +15,7 @@ pour les idées). On reprend les idées et le flux de travail, jamais ses icône
 - [x] M2.1 : forme d'onde dans les clips audio (miniatures Tracktion).
 - [x] M3.2 : insertion de plugins en tuiles (nom, catégorie, badge INTÉGRÉ/VST3) et ouverture de l'éditeur.
 - [x] M3.3 : effets intégrés proposés en tuiles (égaliseur, compresseur, réverbération, délai, filtre, etc.).
+- [x] Refonte UI v2 (maquette sombre plate) : barre du haut compacte 48 px, pistes compactes 196x72 colorées par piste, mixeur ancré (MixerDock), barre d'état en bas, boutons/icônes plats style lecteur, ajout de piste en 6 choix, bouton PAS pour les pistes rythme. `verifier.sh` + `build_local.sh` OK le 26/11. **Validée par l'utilisateur le 26/11.**
 
 Vérification du 19/11/2026 : `bash scripts/verifier.sh --tout` → 10/10 sources OK, sans avertissement.
 Compilation locale réussie avec `bash scripts/build_local.sh` (1 cœur, priorité basse, binaire 217 Mo).
@@ -143,18 +144,22 @@ fenêtre est maintenant créée avec `create()` puis rendue visible : elle est n
 
 ## M3 : plugins
 
-- [ ] **M3.1** Hébergement VST3 (LV2 à vérifier selon les versions de JUCE/Tracktion), scan hors processus,
+- [x] **M3.1** Hébergement VST3 (LV2 à vérifier selon les versions de JUCE/Tracktion), scan hors processus,
       liste noire des plugins qui plantent.
       *Code terminé le 20/11* : le scanner est lancé dans un processus enfant au démarrage (`FdEngineBehaviour`,
       `startChildProcessPluginScan`), avec repli de Tracktion vers le processus principal si l'enfant ne démarre pas.
       La blacklist est chargée et sauvegardée dans `~/Documents/FD-gPE/plugin-blacklist.txt` ; les plugins qui
       plantent apparaissent en tuile **BLOQUÉ** et peuvent être réhabilités avec **RÉHABILITER** puis un nouveau
       scan (le fichier « dead man's pedal » est nettoyé). `verifier.sh` sans avertissement, `build_local.sh` OK,
-      revues @interface et @relecteur sans réserve. **En attente de validation utilisateur** (scan VST3, plugin
-      qui plante, réhabilitation).
+      revues @interface et @relecteur sans réserve. **Validée par l'utilisateur le 26/11** (scan VST3 fonctionnel).
 - [x] **M3.2** Insérer un plugin sur une piste avec une tuile (image + nom) ; ouvrir sa fenêtre.
 - [x] **M3.3** Effets intégrés (égaliseur, compresseur, réverbération, délai) proposés en tuiles.
 - [ ] **M3.4** Bus d'envoi, piste master, mixeur vertical. *Partiel : volume général et mixeur vertical faits ; bus d'envoi manquants.*
+- [ ] **M3.5** Tranche **MASTER** dans le MixerDock (fader, vu-mètre, M/S), alignée avec la maquette.
+- [ ] **M3.6** Panneau Navigateur redessiné (dossiers, recherche) dans le style de la maquette.
+- [ ] **M3.7** Fenêtres de plugins flottantes au style de l'application (sombre plat, accent vert clair).
+- [ ] **M3.8** Groupes de pistes (colonne GROUPS) et routage visuel selon la maquette.
+- [ ] **M3.9** Envois (SENDS) et bus, intégrés au mixeur et aux pistes.
 
 ## M4 : installation en un clic (en local)
 

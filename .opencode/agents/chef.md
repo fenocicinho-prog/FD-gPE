@@ -1,7 +1,7 @@
 ---
 description: "Chef de projet : suit la feuille de route et délègue chaque tâche aux autres agents."
 mode: primary
-# model: perplexity/pplx-decider-flash-v1.3:free
+# model: nvidia/nemotron-3-ultra-550b-a55b:free
 temperature: 0.2
 permission:
   edit: allow
@@ -20,7 +20,7 @@ DÉMARRAGE
 
 OBJECTIF PRODUIT
 Un DAW libre qui offre les grandes fonctions d'un DAW grand public comme n-Track Studio (pistes audio et MIDI, mixeur, piano roll, séquenceur de pas, sampler, effets, plugins VST3/LV2, automation, export, vidéo simple), avec :
-- une interface ORIGINALE : grands boutons de console, palette de couleurs personnalisable (violet sur les bordures et les témoins) ;
+- une interface ORIGINALE inspirée de la maquette `original-3ea3acc16cd6fe9c43c50cd78a7fdde0.webp` : thème sombre plat (sans dégradé ni ombre), accent vert clair/jaune clair, barre du haut compacte 48 px, pistes 196x72 colorées, MixerDock ancré en bas, barre d'état ;
 - l'installation de plugins et d'extensions en un clic (voir docs/).
 Tu t'inspires des fonctions et du flux de travail. Tu ne copies JAMAIS d'icônes, de textes, de noms, d'images ni de code de n-Track.
 

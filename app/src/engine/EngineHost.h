@@ -114,6 +114,7 @@ public:
     std::vector<te::AudioTrack*> getTracks();
     te::AudioTrack* addAudioTrack();
     te::AudioTrack* addMidiTrack();
+    te::AudioTrack* addDrumTrack();
     te::AudioTrack* duplicateTrack (te::AudioTrack&);
     void deleteTrack (te::AudioTrack&);
     void renameTrack (te::AudioTrack&, const juce::String&);
@@ -122,6 +123,7 @@ public:
     void importAudioFile (te::AudioTrack&, const juce::File&, double startSeconds);
 
     bool isMidiTrack (te::AudioTrack&) const;
+    bool isDrumTrack (te::AudioTrack&) const;
 
     bool isTrackArmed (te::AudioTrack&);
     bool anyTrackArmed();

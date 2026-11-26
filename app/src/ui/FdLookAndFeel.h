@@ -14,7 +14,7 @@ public:
     FdLookAndFeel();
 
     /** Glyphe dessiné à la place du libellé d'un bouton de transport. */
-    enum class ButtonSymbol { none, play, rec, loop };
+    enum class ButtonSymbol { none, play, rec, loop, skipBack };
 
     /** Réapplique les couleurs courantes de la palette après un changement de thème. */
     void refreshPalette();

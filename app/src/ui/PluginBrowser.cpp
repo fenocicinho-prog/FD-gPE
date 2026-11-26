@@ -99,7 +99,8 @@ private:
 //==============================================================================
 PluginBrowser::PluginBrowser (EngineHost& h, juce::String target,
                               std::function<void (const PluginInfo&)> add,
-                              std::function<void()> close)
+                              std::function<void()> close,
+                              int initialFilterId)
     : host (h), trackName (std::move (target)), onAdd (std::move (add)), onClose (std::move (close))
 {
     titleLabel.setText (tr ("Ajouter un plugin"), juce::dontSendNotification);
@@ -130,7 +131,8 @@ PluginBrowser::PluginBrowser (EngineHost& h, juce::String target,
     filter.addItem (tr ("Effets"), 3);
     filter.addItem (tr ("Intégrés"), 4);
     filter.addItem (tr ("VST3 / externes"), 5);
-    filter.setSelectedId (1, juce::dontSendNotification);
+    filter.addItem (tr ("Boucles"), 6);
+    filter.setSelectedId (juce::jlimit (1, 6, initialFilterId), juce::dontSendNotification);
     filter.onChange = [this] { applyFilters(); };
 
     scanButton.onClick = [this] { scanPlugins(); };
@@ -190,6 +192,7 @@ void PluginBrowser::applyFilters()
         if (filterId == 3 && info.instrument)    continue;
         if (filterId == 4 && ! info.builtIn)     continue;
         if (filterId == 5 && info.builtIn)       continue;
+        if (filterId == 6)                        continue; // Boucles : bibliothèque à venir.
 
         if (query.isNotEmpty())
         {
@@ -203,6 +206,9 @@ void PluginBrowser::applyFilters()
 
     selected = -1;
     hovered = -1;
+
+    if (filterId == 6)
+        statusLabel.setText (tr ("Aucune boucle pour l'instant."), juce::dontSendNotification);
 
     const int availableWidth = juce::jmax (tileWidth, viewport.getMaximumVisibleWidth());
     columns = juce::jmax (1, (availableWidth - gridPadding * 2 + tileGap) / (tileWidth + tileGap));
@@ -404,7 +410,7 @@ void PluginBrowser::chooseFolder()
 }
 
 //==============================================================================
-void PluginBrowser::show (EngineHost& host, te::AudioTrack* track)
+void PluginBrowser::show (EngineHost& host, te::AudioTrack* track, int initialFilterId)
 {
     const juce::String target = track != nullptr ? track->getName() : juce::String();
 
@@ -424,7 +430,7 @@ void PluginBrowser::show (EngineHost& host, te::AudioTrack* track)
     options.useNativeTitleBar = true;
     options.resizable = true;
 
-    options.content.setOwned (new PluginBrowser (host, target, std::move (onAdd), {}));
+    options.content.setOwned (new PluginBrowser (host, target, std::move (onAdd), {}, initialFilterId));
 
     auto* window = options.launchAsync();
     window->setSize (900, 640);

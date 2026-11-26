@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 #include <juce_graphics/juce_graphics.h>
 
 namespace fdgpe::palette
@@ -51,6 +53,10 @@ struct Theme
     juce::Colour amber        { 0xffffa528 };
     juce::Colour green        { 0xff12b886 };
 
+    // Surfaces profondes (référence : DAW sombre à plat)
+    juce::Colour bgDeep       { 0xfff0f1f4 };   // fond de la ligne de temps
+    juce::Colour strip        { 0xfff6f7f9 };   // tranche de mixeur
+
     // Clips
     juce::Colour audioClip    { 0xffd8e6ff };
     juce::Colour audioClipHi  { 0xff9dc2ff };
@@ -63,23 +69,25 @@ struct Theme
     {
         if (dark)
         {
-            // Gris neutres (inspirés du thème sombre de Firefox), jamais noirs :
-            // les textes et les boutons restent lisibles sur toute la surface.
-            bgTop        = c (0xff23222b);
-            bgBottom     = c (0xff1c1b22);
-            panel        = c (0xff2b2a33);
-            panelHi      = c (0xff38373f);
-            lane         = c (0xff24232c);
-            laneAlt      = c (0xff2e2d36);
-            line         = c (0xff494857);
-            outline      = c (0xff5a5968);
-            text         = c (0xfff9f9ff);
-            textDim      = c (0xffc6c5cf);
-            textFaint    = c (0xff9d9caa);
-            buttonTop    = c (0xff4b4a56);
-            buttonBottom = c (0xff38373f);
-            buttonHover  = c (0xff585764);
-            buttonDown   = c (0xff2c2b34);
+            // Sombre à plat : fonds presque noirs, peu de contraste entre panneaux,
+            // l'accent (vert clair par défaut) porte tout le reste.
+            bgTop        = c (0xff26272b);
+            bgBottom     = c (0xff26272b);
+            bgDeep       = c (0xff1f2024);
+            panel        = c (0xff2f3035);
+            panelHi      = c (0xff3a3b41);
+            strip        = c (0xff2b2c31);
+            lane         = c (0xff25262a);
+            laneAlt      = c (0xff2a2b30);
+            line         = c (0xff45464d);
+            outline      = c (0xff595a62);
+            text         = c (0xfff0f1f3);
+            textDim      = c (0xffb4b6bd);
+            textFaint    = c (0xff7d7f87);
+            buttonTop    = c (0xff3c3d44);
+            buttonBottom = c (0xff3c3d44);
+            buttonHover  = c (0xff494a52);
+            buttonDown   = c (0xff2d2e33);
             midiClip     = c (0xff25483f);
         }
         else
@@ -99,6 +107,8 @@ struct Theme
             buttonBottom = c (0xffe1e4ea);
             buttonHover  = c (0xfff2f7ff);
             buttonDown   = c (0xffd2d9e6);
+            bgDeep       = c (0xfff0f1f4);
+            strip        = c (0xfff6f7f9);
             midiClip     = c (0xffd9f5ea);
         }
 
@@ -122,6 +132,8 @@ inline juce::Colour& bgTop        = theme.bgTop;
 inline juce::Colour& bgBottom     = theme.bgBottom;
 inline juce::Colour& panel        = theme.panel;
 inline juce::Colour& panelHi      = theme.panelHi;
+inline juce::Colour& bgDeep       = theme.bgDeep;
+inline juce::Colour& strip        = theme.strip;
 inline juce::Colour& lane         = theme.lane;
 inline juce::Colour& laneAlt      = theme.laneAlt;
 inline juce::Colour& line         = theme.line;
@@ -146,4 +158,13 @@ inline juce::Colour& audioClip    = theme.audioClip;
 inline juce::Colour& audioClipHi  = theme.audioClipHi;
 inline juce::Colour& midiClip     = theme.midiClip;
 inline juce::Colour& midiClipHi   = theme.midiClipHi;
+
+/** Couleurs de piste proposées par défaut : jaune clair, vert clair, sarcelle et bleu,
+    dans l'esprit des clips de la maquette de référence. */
+inline juce::Colour trackColour (int index) noexcept
+{
+    static const juce::uint32 colours[] = { 0xffd9d28a, 0xff5fd3b0, 0xff4f78d6, 0xff8fd18a,
+                                            0xffe0b95c, 0xff3fa7a0, 0xff6c8de0, 0xffb7d97a };
+    return juce::Colour (colours[(std::size_t) juce::jmax (0, index) % 8]);
+}
 } // namespace fdgpe::palette

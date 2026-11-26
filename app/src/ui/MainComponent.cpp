@@ -1,5 +1,7 @@
 #include "MainComponent.h"
 
+#include <cmath>
+
 #include <algorithm>
 
 #include "FdLookAndFeel.h"
@@ -359,21 +361,46 @@ MainComponent::MainComponent()
     addAndMakeVisible (transport);
     addAndMakeVisible (ruler);
 
+    // Le statut s'affiche dans la barre du bas.
+    statusBar.setFont (juce::Font (juce::FontOptions (11.5f, juce::Font::plain)));
+    statusBar.setJustificationType (juce::Justification::centredLeft);
+    statusBar.setColour (juce::Label::textColourId, palette::textDim);
+    addAndMakeVisible (statusBar);
+    transport.onStatus = [this] (const juce::String& message)
+    {
+        statusBar.setText (message, juce::dontSendNotification);
+    };
+
+    // Mixeur ancré en bas : tranches de console, effets inclus.
+    {
+        MixerDock::Callbacks dockCallbacks;
+        dockCallbacks.addPlugin    = [this] (te::AudioTrack& t) { PluginBrowser::show (host, &t); };
+        dockCallbacks.pluginEditor = [this] (te::Plugin& p) { showPluginEditor (p); };
+        dockCallbacks.changed      = [this] { refreshRows(); };
+        mixerDock = std::make_unique<MixerDock> (host, dockCallbacks);
+        addAndMakeVisible (*mixerDock);
+    }
+
     viewport.setViewedComponent (&rowsContainer, false);
     viewport.setScrollBarsShown (true, false);
     viewport.setScrollBarThickness (10);
     addAndMakeVisible (viewport);
 
     addTrackButton.setTooltip (tr ("Ajouter une piste (audio ou MIDI)"));
-    FdLookAndFeel::setFontSize (addTrackButton, 22.0f);
+    addTrackButton.setButtonText (tr ("+  AJOUTER UNE PISTE"));
+    FdLookAndFeel::setFontSize (addTrackButton, 12.0f);
     projectButton.setButtonText (tr ("PROJET…"));
     projectButton.onClick = [this] { showProjectMenu(); };
 
     addTrackButton.onClick = [this]
     {
         juce::PopupMenu menu;
-        menu.addItem (1, tr ("Piste audio"));
-        menu.addItem (2, tr ("Piste MIDI"));
+        menu.addItem (1, tr ("Instrument"));
+        menu.addItem (2, tr ("Piste audio"));
+        menu.addItem (3, tr ("Audio du disque local"));
+        menu.addItem (4, tr ("Rythme / Batterie"));
+        menu.addItem (5, tr ("Boucle"));
+        menu.addItem (6, tr ("Piste MIDI vide"));
 
         menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (addTrackButton),
                             [safe = juce::Component::SafePointer<MainComponent> (this)] (int result)
@@ -382,13 +409,50 @@ MainComponent::MainComponent()
                                     return;
 
                                 if (result == 1)
-                                    safe->createAudioTrack();
+                                {
+                                    if (auto* t = safe->host.addMidiTrack())
+                                    {
+                                        safe->host.saveProject();
+                                        safe->rebuildRows();
+                                        PluginBrowser::show (safe->host, t, 2);
+                                        safe->transport.setStatus (tr ("Piste instrument ajoutée : choisis un instrument."));
+                                    }
+                                }
                                 else if (result == 2)
+                                {
+                                    safe->createAudioTrack();
+                                }
+                                else if (result == 3)
+                                {
+                                    if (auto* t = safe->host.addAudioTrack())
+                                    {
+                                        safe->host.saveProject();
+                                        safe->rebuildRows();
+                                        safe->importAudio (t);
+                                    }
+                                }
+                                else if (result == 4)
+                                {
+                                    if (safe->host.addDrumTrack() != nullptr)
+                                    {
+                                        safe->host.saveProject();
+                                        safe->rebuildRows();
+                                        safe->transport.setStatus (tr ("Piste rythme ajoutée."));
+                                    }
+                                }
+                                else if (result == 5)
+                                {
+                                    PluginBrowser::show (safe->host, safe->getFocusedTrack(), 6);
+                                    safe->transport.setStatus (tr ("Bibliothèque de boucles : à venir."));
+                                }
+                                else if (result == 6)
+                                {
                                     safe->createMidiTrack();
+                                }
                             });
     };
 
-    addAndMakeVisible (addTrackButton);
+    rowsContainer.addAndMakeVisible (addTrackButton);
     addAndMakeVisible (projectButton);
 
     addAndMakeVisible (overlay);
@@ -408,43 +472,83 @@ MainComponent::~MainComponent()
     keyboardWindow.reset();
     audioSettingsWindow.reset();
     rows.clear();
+    if (mixerDock != nullptr) mixerDock->clear();
 }
 
 //==============================================================================
 void MainComponent::paint (juce::Graphics& g)
 {
-    auto r = getLocalBounds().toFloat();
+    g.fillAll (palette::bgDeep);
 
-    g.setGradientFill (juce::ColourGradient (palette::bgTop, 0.0f, 0.0f, palette::bgBottom, 0.0f, r.getBottom(), false));
-    g.fillRect (r);
+    // Fond continu sous les pistes : en-têtes à gauche, lignes de mesure à droite,
+    // pour ne laisser aucun grand vide noir jusqu'au mixeur.
+    {
+        const auto vp = viewport.getBounds();
+        const auto laneArea = vp.withTrimmedLeft (TrackRow::headerWidth);
 
-    // zone "PISTES" à gauche de la règle
+        g.setColour (palette::panel);
+        g.fillRect (vp.withWidth (TrackRow::headerWidth));
+        g.setColour (palette::lane);
+        g.fillRect (laneArea);
+        g.setColour (palette::line);
+        g.drawVerticalLine (vp.getX() + TrackRow::headerWidth - 1, (float) vp.getY(), (float) vp.getBottom());
+
+        const double secondsPerBar = 4.0 * 60.0 / host.getTempoBpm();
+
+        if (secondsPerBar * model.pixelsPerSecond >= 10.0)
+        {
+            g.setColour (palette::outline.withAlpha (0.45f));
+
+            for (double t = std::floor (model.startSeconds / secondsPerBar) * secondsPerBar; ; t += secondsPerBar)
+            {
+                const float x = (float) laneArea.getX() + model.secondsToX (t);
+
+                if (x > (float) laneArea.getRight())
+                    break;
+
+                if (x >= (float) laneArea.getX())
+                    g.drawVerticalLine (juce::roundToInt (x), (float) laneArea.getY(), (float) laneArea.getBottom());
+            }
+        }
+    }
+
+    // En-tête « PISTES » à gauche de la règle
     auto titleArea = juce::Rectangle<int> (1, ruler.getY(), TrackRow::headerWidth, ruler.getHeight());
-    g.setGradientFill (juce::ColourGradient (palette::panelHi, 0.0f, (float) titleArea.getY(),
-                                             palette::panel, 0.0f, (float) titleArea.getBottom(), false));
+    g.setColour (palette::panel);
     g.fillRect (titleArea);
     g.setColour (palette::textDim);
-    g.setFont (juce::Font (juce::FontOptions (11.5f, juce::Font::bold)));
-    g.drawText ("PISTES", titleArea.reduced (12, 0), juce::Justification::centredLeft);
-    g.setColour (palette::blueSoft.withAlpha (0.55f));
+    g.setFont (juce::Font (juce::FontOptions (10.5f, juce::Font::bold)));
+    g.drawText ("PISTES / MESURES", titleArea.reduced (12, 0), juce::Justification::centredLeft);
+    g.setColour (palette::line);
     g.drawHorizontalLine (titleArea.getBottom() - 1, (float) titleArea.getX(), (float) titleArea.getRight());
 
-    // cadre bleu autour de la fenêtre
-    g.setColour (palette::blueSoft);
-    g.drawRect (getLocalBounds(), 1);
+    // Barre du bas
+    auto footer = getLocalBounds().removeFromBottom (30);
+    g.setColour (palette::panel);
+    g.fillRect (footer);
+    g.setColour (palette::line);
+    g.drawHorizontalLine (footer.getY(), 0.0f, (float) getWidth());
 }
 
 void MainComponent::resized()
 {
-    auto area = getLocalBounds().reduced (1);
+    auto area = getLocalBounds();
 
-    transport.setBounds (area.removeFromTop (108));
+    transport.setBounds (area.removeFromTop (48));
 
-    auto addBar = area.removeFromBottom (52);
-    addTrackButton.setBounds (addBar.removeFromLeft (68).reduced (8, 4));
-    projectButton.setBounds (addBar.removeFromLeft (130).reduced (8, 4));
+    auto footer = area.removeFromBottom (30);
+    projectButton.setBounds (footer.removeFromLeft (96).reduced (4, 3));
+    statusBar.setBounds (footer.reduced (8, 0));
 
-    auto rulerRow = area.removeFromTop (30);
+    if (mixerDock == nullptr)
+        return;
+
+    mixerDock->setVisible (mixerVisible);
+
+    if (mixerVisible)
+        mixerDock->setBounds (area.removeFromBottom (MixerDock::dockHeight));
+
+    auto rulerRow = area.removeFromTop (26);
     rulerRow.removeFromLeft (TrackRow::headerWidth);
     ruler.setBounds (rulerRow);
 
@@ -722,6 +826,7 @@ void MainComponent::rebuildRows()
     // sont branchés sur les pistes).
     closeTrackEditors();
     rows.clear();
+    if (mixerDock != nullptr) mixerDock->clear();
 
     TrackRow::Callbacks callbacks;
     callbacks.seek          = [this] (double s) { seek (s); };
@@ -730,7 +835,13 @@ void MainComponent::rebuildRows()
     callbacks.addPlugin     = [this] (te::AudioTrack& t) { PluginBrowser::show (host, &t); };
     callbacks.pluginEditor  = [this] (te::Plugin& p) { showPluginEditor (p); };
     callbacks.openPianoRoll = [this] (te::MidiClip& c) { openPianoRoll (c); };
-    callbacks.openKeyboard  = [this] (te::AudioTrack& t) { openKeyboard (t); };
+    callbacks.openKeyboard  = [this] (te::AudioTrack& t)
+    {
+        if (host.isDrumTrack (t))
+            showStepSequencer (&t);
+        else
+            openKeyboard (t);
+    };
 
     callbacks.splitClip = [this] (te::Clip& clip)
     {
@@ -793,14 +904,19 @@ void MainComponent::rebuildRows()
         rows.push_back (std::move (row));
     }
 
+    if (mixerDock != nullptr)
+        mixerDock->rebuild();
+
     layoutRows();
 }
 
 void MainComponent::layoutRows()
 {
     const int width = juce::jmax (100, viewport.getMaximumVisibleWidth());
+    constexpr int addBarHeight = 48;
+    const int rowsHeight = (int) rows.size() * TrackRow::rowHeight;
 
-    rowsContainer.setSize (width, (int) rows.size() * TrackRow::rowHeight);
+    rowsContainer.setSize (width, rowsHeight + addBarHeight);
 
     int y = 0;
 
@@ -809,17 +925,24 @@ void MainComponent::layoutRows()
         row->setBounds (0, y, width, TrackRow::rowHeight);
         y += TrackRow::rowHeight;
     }
+
+    // Le bouton d'ajout suit la dernière piste.
+    addTrackButton.setBounds (10, rowsHeight + 10, TrackRow::headerWidth - 20, 28);
 }
 
 void MainComponent::refreshRows()
 {
     for (auto& row : rows)
         row->refreshControls();
+
+    if (mixerDock != nullptr && mixerVisible)
+        mixerDock->refresh();
 }
 
 void MainComponent::viewChanged()
 {
     ruler.repaint();
+    repaint (viewport.getBounds());
 
     for (auto& row : rows)
         row->repaintLane();
@@ -944,6 +1067,7 @@ void MainComponent::removeTrack (te::AudioTrack& track)
 
         closeTrackEditors();
         rows.clear();                  // d'abord les vu-mètres
+        if (mixerDock != nullptr) mixerDock->clear();
         host.deleteTrack (*trackPtr);
         host.saveProject();
         rebuildRows();
@@ -977,6 +1101,15 @@ void MainComponent::showAudioSettings()
 
 void MainComponent::showMixer()
 {
+    if (! juce::ModifierKeys::currentModifiers.isShiftDown())
+    {
+        mixerVisible = ! mixerVisible;
+        resized();
+        repaint();
+        transport.setStatus (mixerVisible ? tr ("Mixeur affiché.") : tr ("Mixeur masqué."));
+        return;
+    }
+
     juce::DialogWindow::LaunchOptions options;
     options.dialogTitle = tr ("Mixeur");
     options.dialogBackgroundColour = palette::panel;
@@ -1025,21 +1158,18 @@ void MainComponent::showProjectMenu()
     menu.addItem (6, tr ("Exporter le mixage en WAV…"));
     menu.addItem (7, tr ("Exporter avec options…"));
     menu.addSeparator();
-    menu.addItem (8, tr ("Séquenceur de pas…"));
-    menu.addSeparator();
-    menu.addItem (9, tr ("Apparence…"));
+    menu.addItem (8, tr ("Apparence…"));
 
     switch (menu.showAt (&projectButton, 0, projectButton.getHeight()))
     {
-        case 1: newProject();          break;
-        case 2: openProject();         break;
-        case 3: saveProjectAs();       break;
-        case 4: importAudio();         break;
-        case 5: duplicateTrack();      break;
-        case 6: exportProject();       break;
+        case 1: newProject();            break;
+        case 2: openProject();           break;
+        case 3: saveProjectAs();         break;
+        case 4: importAudio();           break;
+        case 5: duplicateTrack();        break;
+        case 6: exportProject();         break;
         case 7: exportProjectAdvanced(); break;
-        case 8: showStepSequencer();     break;
-        case 9: showThemePanel();        break;
+        case 8: showThemePanel();        break;
         default: break;
     }
 }
@@ -1048,6 +1178,7 @@ void MainComponent::newProject()
 {
     closeTrackEditors();
     rows.clear();
+    if (mixerDock != nullptr) mixerDock->clear();
     releaseHeldKeys();
 
     if (! host.newProject())
@@ -1079,6 +1210,7 @@ void MainComponent::openProject()
     const auto file = chooser.getResult();
     closeTrackEditors();
     rows.clear();
+    if (mixerDock != nullptr) mixerDock->clear();
     releaseHeldKeys();
 
     if (! host.openProject (file))
@@ -1151,6 +1283,7 @@ void MainComponent::duplicateTrack (te::AudioTrack* track)
 
     closeTrackEditors();
     rows.clear();
+    if (mixerDock != nullptr) mixerDock->clear();
     const auto* copy = host.duplicateTrack (*track);
     rebuildRows();
     transport.setStatus (copy != nullptr ? tr ("Piste dupliquée.")
@@ -1317,11 +1450,11 @@ void MainComponent::showThemePanel()
                                             projectButton.getBounds(), this);
 }
 
-void MainComponent::showStepSequencer()
+void MainComponent::showStepSequencer (te::AudioTrack* target)
 {
-    if (stepPanel == nullptr)
+    if (stepPanel == nullptr || target != nullptr)
     {
-        stepPanel = std::make_unique<StepSequencerPanel> (host);
+        stepPanel = std::make_unique<StepSequencerPanel> (host, target);
         stepPanel->onClose = [this] { stepPanel->setVisible (false); };
         stepPanel->onStructureChanged = [this]
         {
@@ -1510,6 +1643,9 @@ void MainComponent::timerCallback()
         if (host.isRecording())
             row->repaintLane();     // le bloc rouge grandit
     }
+
+    if (mixerDock != nullptr && mixerVisible)
+        mixerDock->updateMeters();
 
     if (tick % 3 == 0)
     {

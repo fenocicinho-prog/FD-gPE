@@ -18,7 +18,8 @@ namespace fdgpe
 class StepSequencerPanel final : public juce::Component
 {
 public:
-    explicit StepSequencerPanel (EngineHost& h) : host (h)
+    explicit StepSequencerPanel (EngineHost& h, te::AudioTrack* target = nullptr)
+        : host (h), targetTrack (target)
     {
         for (juce::TextButton* b : { &playButton, &clearButton, &closeButton })
             addAndMakeVisible (b);
@@ -259,6 +260,14 @@ private:
 
     te::AudioTrack* findDrumTrack()
     {
+        if (targetTrack != nullptr && host.isDrumTrack (*targetTrack))
+            return targetTrack;
+
+        for (auto* track : host.getTracks())
+            if (host.isDrumTrack (*track))
+                return track;
+
+        // Compatibilité : anciens projets où la piste batterie n'avait pas le flag.
         for (auto* track : host.getTracks())
             if (host.isMidiTrack (*track) && track->getName() == tr ("Batterie"))
                 return track;
@@ -285,11 +294,9 @@ private:
 
         if (track == nullptr)
         {
-            track = host.addMidiTrack();
+            track = host.addDrumTrack();
             if (track == nullptr)
                 return nullptr;
-
-            host.renameTrack (*track, tr ("Batterie"));
 
             if (onStructureChanged)
                 onStructureChanged();
@@ -409,6 +416,7 @@ private:
     }
 
     EngineHost& host;
+    te::AudioTrack* targetTrack = nullptr;
     std::array<std::array<bool, steps>, rows> pattern {};
     std::array<juce::String, rows> sampleNames {};
     int currentStep = -1;

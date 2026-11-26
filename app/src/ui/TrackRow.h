@@ -36,8 +36,12 @@ public:
 
     void refresh();
 
+    /** Mode liste verticale (tranche de mixeur) au lieu de tuiles en rangée. */
+    void setVertical (bool);
+
 private:
     juce::Rectangle<int> tileBounds (int index) const;
+    int indexAt (juce::Point<int>) const;
     int tileCount() const;
 
     EngineHost& host;
@@ -46,6 +50,7 @@ private:
     std::vector<juce::String> names;
     std::vector<bool> enabled;
     int hovered = -1;
+    bool vertical = false;
 };
 
 /** Une piste : en-tête (nom, ARM, MUTE, SOLO, volume, pan, vu-mètre, plugins)
@@ -53,8 +58,8 @@ private:
 class TrackRow final : public juce::Component
 {
 public:
-    static constexpr int headerWidth = 320;
-    static constexpr int rowHeight = 148;
+    static constexpr int headerWidth = 196;
+    static constexpr int rowHeight = 72;
 
     struct Callbacks
     {
@@ -102,7 +107,7 @@ private:
     void showClipMenu (te::Clip&, const juce::MouseEvent&);
     void showTrackMenu (const juce::MouseEvent&);
     void showColourMenu();
-    void drawWaveform (juce::Graphics&, te::Clip&, juce::Rectangle<float>);
+    void drawWaveform (juce::Graphics&, te::Clip&, juce::Rectangle<float>, juce::Colour ink);
     double snap (double seconds) const;
 
     EngineHost& host;
@@ -111,8 +116,8 @@ private:
     Callbacks callbacks;
 
     juce::Label kindLabel, nameLabel, volLabel, panLabel;
-    juce::TextButton armButton { "ARM" }, muteButton { "MUTE" }, soloButton { "SOLO" }, deleteButton { "X" };
-    juce::TextButton keyboardButton { "CLAVIER" };
+    juce::TextButton armButton { "ARM" }, muteButton { "M" }, soloButton { "S" }, deleteButton { "X" };
+    juce::TextButton keyboardButton { "CLAV." };
     juce::Slider volumeSlider, panSlider;
     PluginStrip pluginStrip;
     juce::Rectangle<int> meterBounds;

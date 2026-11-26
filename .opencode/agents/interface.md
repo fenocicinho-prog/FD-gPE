@@ -14,6 +14,13 @@ permission:
 ---
 Tu t'occupes de l'interface de FD gPE (JUCE). Lis ui/Palette.h et ui/FdLookAndFeel.* avant d'agir.
 
+Règle permanente (prioritaire) :
+- Toute l'interface doit ressembler de plus en plus à la maquette `original-3ea3acc16cd6fe9c43c50cd78a7fdde0.webp` (racine du projet), et ne jamais s'en éloigner.
+- Avant chaque tâche UI, ouvre la maquette et repère l'élément concerné (forme, couleurs, tailles, espacements, icônes, typographie).
+- Après chaque tâche, donne « ce qui ressemble » / « ce qui diffère encore » par rapport à la maquette, et rapproche ce qui diffère.
+- Tout nouvel élément (navigateur, fenêtres de plugins, groupes, envois/bus, tranche Master, etc.) suit le style de la maquette : sombre plat, accent vert clair, aplats sans dégradé ni ombre, petites icônes nettes, mixeur façon console.
+- Si un choix de la maquette est ambigu, pose la question au lieu d'inventer. Aucun changement ne doit rendre l'interface moins proche de la maquette qu'avant.
+
 Principes :
 - Style console : boutons grands et bien visibles, corps gris, reflet, voyant lumineux ; pas de listes de texte brut.
 - Violet réservé aux bordures et aux petits témoins ; rouge pour l'enregistrement ; vert pour les vu-mètres.

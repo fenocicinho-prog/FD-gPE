@@ -50,11 +50,12 @@ Tracktion change entre les versions : seule la version épinglée dans `third_pa
 | Dossier | Rôle |
 |---|---|
 | `engine/EngineHost.*` | **Seul endroit qui parle à Tracktion** : projet, pistes, armement, transport, clavier virtuel. Le reste du code n'appelle pas Tracktion directement (sauf `te::AudioTrack&` passé aux pistes). |
-| `ui/FdLookAndFeel.*`, `ui/Palette.h` | Apparence : couleurs, boutons de console, curseurs. |
-| `ui/TransportBar.*` | Barre du haut : transport, position, tempo, CPU. |
-| `ui/TrackRow.*` | Une piste : en-tête (ARM, MUTE, SOLO, VOL, PAN, vu-mètre) et clips. |
+| `ui/FdLookAndFeel.*`, `ui/Palette.h` | Apparence : thème sombre plat, couleurs, boutons/icônes, curseurs. Toutes les couleurs passent par `Palette.h`. |
+| `ui/TransportBar.*` | Barre du haut compacte (une rangée, 48 px) : transport, position, tempo, statut. |
+| `ui/TrackRow.*` | Une piste compacte (en-tête 196x72) : ARM, MUTE, SOLO, VOL, vu-mètre, bouton CLAV./PAS, clips colorés par piste. |
+| `ui/MixerDock.*` | Mixeur ancré en bas : tranches par piste (nom, effets verticaux, pan, fader, vu-mètre, M/S). `mixerDock->clear()` avant toute suppression/reconstruction de piste. |
 | `ui/TimelineRuler.*`, `ui/TimelineModel.h` | Règle, tête de lecture, échelle partagée. |
-| `ui/MainComponent.*` | Fenêtre principale, minuteur 20 Hz, clavier à l'écran. |
+| `ui/MainComponent.*` | Fenêtre principale, mise en page, barre d'état en bas, minuteur 20 Hz, éditeurs intégrés. |
 
 Le projet utilisateur est `~/Documents/FD-gPE/Projet.tracktionedit`. Le type d'une piste (audio ou MIDI)
 est stocké dans la propriété `fdgpeKind` de l'état de la piste.
@@ -72,11 +73,23 @@ est stocké dans la propriété `fdgpeKind` de l'état de la piste.
 
 ## Style de l'interface
 
-- Surfaces sombres et lumineuses avec léger dégradé ; **violet réservé aux bordures et aux petits témoins**
-  (voyants, contours des boutons actifs, repère de lecture). Rouge pour l'enregistrement, vert pour les vu-mètres.
-- Boutons de console, **grands et bien visibles**, avec image du plugin quand il y en a une ; **pas de listes
-  de texte brut**. Zones cliquables d'au moins 44 px quand c'est possible.
+- **Thème sombre à plat** (maquette `original-3ea3acc16cd6fe9c43c50cd78a7fdde0.webp`) : aplats, **sans dégradé ni ombre**. Accent vert clair ou jaune clair (choix utilisateur), rouge pour l'enregistrement, vert pour les vu-mètres.
+- **Barre du haut compacte** : une seule rangée de 48 px (transport, position, tempo, statut/menu).
+- **Pistes compactes** : en-tête 196x72, clips colorés par piste, bouton CLAV./PAS selon le type (rythme = séquenceur de pas).
+- **MixerDock ancré en bas** : tranches par piste, effets en liste verticale, pan, fader, vu-mètre, MUTE/SOLO. Toujours appeler `mixerDock->clear()` avant de supprimer/reconstruire les pistes.
+- **Barre d'état en bas** : messages courts d'état.
+- Boutons/icônes plats, petits et nets ; pas de listes de texte brut. Zones cliquables d'au moins 44 px quand c'est possible.
 - Toutes les couleurs passent par `ui/Palette.h`.
+
+## Règle permanente : fidélité à la maquette
+
+Toute l'interface doit ressembler de plus en plus à la maquette `original-3ea3acc16cd6fe9c43c50cd78a7fdde0.webp` (racine du projet), et ne jamais s'en éloigner :
+
+- Avant chaque tâche qui touche à l'interface, ouvre la maquette et repère l'élément concerné (forme, couleurs, tailles, espacements, icônes, typographie).
+- Après chaque tâche, fais la liste courte « ce qui ressemble » et « ce qui diffère encore » par rapport à la maquette, et rapproche l'interface de la maquette sur ce qui diffère.
+- Tout nouvel élément (navigateur de fichiers, fenêtres de plugins, groupes de pistes, envois/bus, tranche Master, etc.) suit le style de la maquette : sombre plat, accent vert clair, aplats sans dégradé ni ombre, petites icônes nettes, mixeur façon console.
+- Si un choix de la maquette est ambigu, pose-moi la question au lieu d'inventer.
+- Aucun changement ne doit rendre l'interface moins proche de la maquette qu'avant.
 
 ## Sécurité et licence
 

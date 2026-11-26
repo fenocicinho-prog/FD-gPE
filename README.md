@@ -264,11 +264,11 @@ d'enregistrement, quand tu ajoutes ou supprimes une piste, et à la fermeture.
 | Zoom / défilement | Ctrl + molette = zoom ; Maj + molette = défilement horizontal |
 | Renommer une piste | Double-clic sur son nom |
 | Remettre un curseur à zéro | Double-clic sur VOL ou PAN |
-| Ajouter / supprimer une piste | Bouton **+** (menu **Piste audio** / **Piste MIDI**), bouton **X** |
+| Ajouter / supprimer une piste | Bouton **+ AJOUTER UNE PISTE** (Instrument, Piste audio, Audio du disque local, Rythme / Batterie, Boucle, Piste MIDI vide), bouton **X** |
 | Nouveau / ouvrir / enregistrer sous | Bouton **PROJET…**, ou **Ctrl+N** / **Ctrl+O** / **Ctrl+Maj+S** |
 | Importer un fichier audio | **PROJET… → Importer**, **Ctrl+I**, ou clic droit sur une piste |
 | Dupliquer une piste | **PROJET… → Dupliquer**, **Ctrl+D**, ou clic droit sur une piste |
-| Ouvrir le mixeur vertical | **MENU → Mixeur** (VOL, PAN, MUTE par piste) |
+| Afficher/masquer le mixeur | **MENU → Mixeur** (dock ancré en bas : fader, pan, vu-mètre, MUTE/SOLO, effets par piste) |
 | Changer le magnétisme | **MENU → Magnétisme** : OFF, 1/16, 1/8, 1/4, 1/2, 1 mesure |
 | Ajouter un clip MIDI | Double-clic dans une piste MIDI, ou clic droit → **Nouveau clip MIDI ici** |
 | Couleur d'une piste | Clic droit sur la piste → **Changer la couleur…** |
@@ -349,7 +349,7 @@ Un clic sur **+** ajoute le plugin à la piste choisie.
 > (le projet ne fait que référencer leur chemin). Ne les déplacez pas et ne les supprimez pas,
 > sinon les pads concernés deviendront silencieux après réouverture du projet.
 
-> **Apparence** : certaines fenêtres déjà ouvertes (piano roll, navigateur de plugins, mixeur) gardent
+> **Apparence** : certaines fenêtres déjà ouvertes (piano roll, navigateur de plugins) gardent
 > la couleur de leurs libellés jusqu'à leur réouverture ; le reste de l'interface change immédiatement.
 
 ```

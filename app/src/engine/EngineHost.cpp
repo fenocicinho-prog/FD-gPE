@@ -13,6 +13,7 @@ namespace fdgpe
 namespace
 {
     const juce::Identifier kindId       { "fdgpeKind" };
+    const juce::Identifier drumId       { "fdgpeDrum" };
     const juce::Identifier colourId     { "fdgpeColour" };
     const char* const keyboardDeviceName = "Clavier FD gPE";
 
@@ -283,6 +284,11 @@ bool EngineHost::isMidiTrack (te::AudioTrack& track) const
     return track.state.getProperty (kindId).toString() == "midi";
 }
 
+bool EngineHost::isDrumTrack (te::AudioTrack& track) const
+{
+    return (bool) track.state.getProperty (drumId, false);
+}
+
 int EngineHost::countTracksOfKind (bool midi)
 {
     int n = 0;
@@ -317,6 +323,25 @@ te::AudioTrack* EngineHost::addTrackOfKind (bool midi)
 
 te::AudioTrack* EngineHost::addAudioTrack()  { return addTrackOfKind (false); }
 te::AudioTrack* EngineHost::addMidiTrack()   { return addTrackOfKind (true); }
+
+te::AudioTrack* EngineHost::addDrumTrack()
+{
+    auto* track = addTrackOfKind (true);
+
+    if (track == nullptr)
+        return nullptr;
+
+    track->state.setProperty (drumId, true, nullptr);
+
+    int n = 0;
+    for (auto* t : te::getAudioTracks (*edit))
+        if (isDrumTrack (*t))
+            ++n;
+
+    track->setName (tr ("Rythme ") + juce::String (juce::jmax (1, n)));
+    ensureDrumSampler (*track);
+    return track;
+}
 
 te::AudioTrack* EngineHost::duplicateTrack (te::AudioTrack& source)
 {
@@ -395,6 +420,23 @@ void EngineHost::setTrackColour (te::AudioTrack& track, const juce::Colour& colo
 
 juce::Colour EngineHost::getTrackColour (const te::AudioTrack& track) const
 {
+    // Piste sans couleur choisie : on en propose une selon sa position, pour
+    // que les clips se distinguent d'un coup d'œil (jaune clair, vert clair, bleu…).
+    if (! track.state.hasProperty (colourId))
+    {
+        int index = 0;
+
+        for (auto* t : te::getAudioTracks (*edit))
+        {
+            if (t == &track)
+                break;
+
+            ++index;
+        }
+
+        return palette::trackColour (index);
+    }
+
     const auto argb = (juce::uint32) (juce::int64) track.state.getProperty (colourId, (juce::int64) palette::blue.getARGB());
     return juce::Colour (argb);
 }
@@ -1407,16 +1449,28 @@ void EngineHost::saveTheme (bool dark, const juce::Colour& accent)
 std::pair<bool, juce::Colour> EngineHost::loadTheme() const
 {
     auto& props = engine.getPropertyStorage().getPropertiesFile();
-    const bool dark = props.getValue ("fdgpeThemeDark", "0") == "1";
-    auto accent = juce::Colour::fromString (props.getValue ("fdgpeAccent", ""));
 
-    // Migration : les versions précédentes avaient un bleu par défaut ou un
-    // accent arbitraire (curseurs R/V/B). Le panneau ne propose plus que deux
-    // accents, donc tout accent non prédéfini devient le jaune fané.
+    // Deux accents prédéfinis : vert clair (par défaut) et jaune clair.
+    constexpr juce::uint32 vertClair  = 0xff5fd3b0;
+    constexpr juce::uint32 jauneClair = 0xffd9d28a;
+
+    // Migration v2 : nouvelle interface sombre à plat. Au premier lancement
+    // après la mise à jour, on passe en sombre + vert clair ; l'utilisateur
+    // peut ensuite rechoisir clair/jaune dans « Apparence… ».
+    if (props.getValue ("fdgpeThemeV2", "0") != "1")
+    {
+        props.setValue ("fdgpeThemeV2", "1");
+        props.setValue ("fdgpeThemeDark", "1");
+        props.setValue ("fdgpeAccent", juce::Colour (vertClair).toString());
+        props.save();
+    }
+
+    const bool dark = props.getValue ("fdgpeThemeDark", "1") == "1";
+    auto accent = juce::Colour::fromString (props.getValue ("fdgpeAccent", ""));
     const auto argb = accent.getARGB();
 
-    if (argb == 0 || argb != 0xff62bd78)
-        accent = juce::Colour (0xffc99a2f);
+    if (argb != vertClair && argb != jauneClair)
+        accent = juce::Colour (vertClair);
 
     return { dark, accent };
 }

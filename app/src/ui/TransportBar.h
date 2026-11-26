@@ -41,6 +41,9 @@ public:
     void setStatus (const juce::String&);
     void setSnapLabel (const juce::String&, bool active);
 
+    /** Appelé à chaque nouveau message d'état (affiché dans la barre du bas). */
+    std::function<void (const juce::String&)> onStatus;
+
 private:
     void loadLogo();
     void showMenu();

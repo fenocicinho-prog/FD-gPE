@@ -8,11 +8,8 @@ namespace fdgpe
 {
 namespace
 {
-    // Hauteur des deux rangées de la barre. 44 px garde des cibles confortables
-    // au clic et au clavier.
-    constexpr int barPadding  = 8;
-    constexpr int rowHeight   = 44;
-    constexpr int rowGap      = 2;
+    // Barre compacte sur une seule rangée.
+    constexpr int buttonHeight = 30;
 
     juce::String formatTime (double seconds)
     {
@@ -52,7 +49,7 @@ TransportBar::TransportBar (EngineHost& h, Callbacks cb)
     setupButton (addMarkerButton, tr ("+ MARQUEUR"));
     setupButton (nextMarkerButton, "M>");
     setupButton (menuButton, tr ("MENU"));
-    setupButton (libraryButton, tr ("BIBLIOTHÈQUE"));
+    setupButton (libraryButton, tr ("NAVIGATEUR"));
     setupButton (projectButton, tr ("PROJET"));
     setupButton (tempoDownButton, "-");
     setupButton (tempoUpButton, "+");
@@ -61,6 +58,7 @@ TransportBar::TransportBar (EngineHost& h, Callbacks cb)
     FdLookAndFeel::setSymbol (playButton, FdLookAndFeel::ButtonSymbol::play);
     FdLookAndFeel::setSymbol (recButton, FdLookAndFeel::ButtonSymbol::rec);
     FdLookAndFeel::setSymbol (loopButton, FdLookAndFeel::ButtonSymbol::loop);
+    FdLookAndFeel::setSymbol (returnButton, FdLookAndFeel::ButtonSymbol::skipBack);
 
     playButton.setTooltip (tr ("Lancer ou arrêter la lecture."));
     recButton.setTooltip (tr ("Démarrer ou arrêter l'enregistrement."));
@@ -97,19 +95,19 @@ TransportBar::TransportBar (EngineHost& h, Callbacks cb)
     tempoDownButton.onClick = [this] { host.setTempoBpm (std::round (host.getTempoBpm()) - 1.0); refresh(); };
     tempoUpButton.onClick   = [this] { host.setTempoBpm (std::round (host.getTempoBpm()) + 1.0); refresh(); };
 
-    styleLabel (positionLabel, juce::Font (juce::FontOptions (juce::Font::getDefaultSansSerifFontName(), 24.0f, juce::Font::bold)),
+    styleLabel (positionLabel, juce::Font (juce::FontOptions (juce::Font::getDefaultSansSerifFontName(), 18.0f, juce::Font::bold)),
                 palette::text, juce::Justification::centred);
     styleLabel (secondsLabel, juce::Font (juce::FontOptions (juce::Font::getDefaultSansSerifFontName(), 12.0f, juce::Font::plain)),
-                palette::textDim, juce::Justification::centred);
-    styleLabel (tempoCaption, juce::Font (juce::FontOptions (10.0f, juce::Font::bold)), palette::textDim, juce::Justification::centred);
-    styleLabel (tempoLabel, juce::Font (juce::FontOptions (juce::Font::getDefaultSansSerifFontName(), 20.0f, juce::Font::bold)),
+                palette::textDim, juce::Justification::centredLeft);
+    styleLabel (tempoCaption, juce::Font (juce::FontOptions (12.0f, juce::Font::plain)), palette::textDim, juce::Justification::centredLeft);
+    styleLabel (tempoLabel, juce::Font (juce::FontOptions (juce::Font::getDefaultSansSerifFontName(), 16.0f, juce::Font::bold)),
                 palette::text, juce::Justification::centred);
     styleLabel (sigLabel, juce::Font (juce::FontOptions (14.0f, juce::Font::bold)), palette::blue, juce::Justification::centred);
     styleLabel (cpuLabel, juce::Font (juce::FontOptions (10.5f, juce::Font::bold)), palette::textDim, juce::Justification::centredRight);
     styleLabel (masterLabel, juce::Font (juce::FontOptions (10.0f, juce::Font::bold)), palette::textDim, juce::Justification::centredLeft);
     styleLabel (statusLabel, juce::Font (juce::FontOptions (11.5f, juce::Font::plain)), palette::textDim, juce::Justification::centredLeft);
 
-    tempoCaption.setText (tr ("TEMPO"), juce::dontSendNotification);
+    tempoCaption.setText (tr ("bpm"), juce::dontSendNotification);
     masterLabel.setText (tr ("MAÎTRE"), juce::dontSendNotification);
 
     masterSlider.setSliderStyle (juce::Slider::LinearHorizontal);
@@ -126,9 +124,15 @@ TransportBar::TransportBar (EngineHost& h, Callbacks cb)
                                 (juce::Component*) &libraryButton, (juce::Component*) &projectButton, (juce::Component*) &tempoDownButton,
                                 (juce::Component*) &tempoUpButton, (juce::Component*) &positionLabel, (juce::Component*) &secondsLabel,
                                 (juce::Component*) &tempoCaption, (juce::Component*) &tempoLabel, (juce::Component*) &sigLabel,
-                                (juce::Component*) &cpuLabel, (juce::Component*) &masterLabel, (juce::Component*) &masterSlider,
-                                (juce::Component*) &statusLabel })
+                                (juce::Component*) &cpuLabel, (juce::Component*) &masterLabel, (juce::Component*) &masterSlider })
         addAndMakeVisible (c);
+
+    // Ces actions vivent dans le menu : la barre reste compacte, comme sur la maquette.
+    tapButton.setVisible (false);
+    prevMarkerButton.setVisible (false);
+    addMarkerButton.setVisible (false);
+    nextMarkerButton.setVisible (false);
+    secondsLabel.setVisible (false);
 
     loadLogo();
     refresh();
@@ -185,18 +189,13 @@ void TransportBar::paint (juce::Graphics& g)
 {
     auto r = getLocalBounds().toFloat();
 
-    // Dégradé clair avec reflet : aspect "barre de navigateur"
-    g.setGradientFill (juce::ColourGradient (palette::panelHi, 0.0f, 0.0f,
-                                             palette::bgBottom, 0.0f, r.getBottom(), false));
+    g.setColour (palette::panel);
     g.fillRect (r);
+    g.setColour (palette::line);
+    g.drawHorizontalLine (getHeight() - 1, 0.0f, r.getRight());
 
-    g.setColour (juce::Colours::white.withAlpha (0.9f));
-    g.drawHorizontalLine (0, 0.0f, r.getRight());
-    g.setColour (palette::blue);
-    g.drawHorizontalLine ((float) getHeight() - 1, 0.0f, r.getRight());
-
-    // Zone logo
-    auto logoArea = juce::Rectangle<float> (12.0f, 10.0f, 116.0f, (float) getHeight() - 20.0f);
+    // Logo : image fournie par l'utilisateur, sinon deux disques (texte + accent).
+    auto logoArea = juce::Rectangle<float> (12.0f, 8.0f, 44.0f, (float) getHeight() - 16.0f);
 
     if (logo.isValid())
     {
@@ -206,78 +205,72 @@ void TransportBar::paint (juce::Graphics& g)
     }
     else
     {
-        g.setColour (palette::blue);
-        g.fillRoundedRectangle (14.0f, 22.0f, 12.0f, 12.0f, 4.0f);
+        const float d = 20.0f;
+        const float cy = logoArea.getCentreY();
         g.setColour (palette::text);
-        g.setFont (juce::Font (juce::FontOptions (22.0f, juce::Font::bold)));
-        g.drawText ("FD gPE", 32, 10, 92, 28, juce::Justification::centredLeft);
-        g.setColour (palette::textDim);
-        g.setFont (juce::Font (juce::FontOptions (10.0f, juce::Font::bold)));
-        g.drawText (tr ("STUDIO"), 33, 38, 90, 12, juce::Justification::centredLeft);
+        g.fillEllipse (logoArea.getX(), cy - d * 0.5f, d, d);
+        g.setColour (palette::blue);
+        g.fillEllipse (logoArea.getX() + 14.0f, cy - d * 0.5f, d, d);
     }
-
-    // séparateur entre les deux rangées
-    g.setColour (palette::line);
-    g.drawHorizontalLine (barPadding + rowHeight + 1, 12.0f, r.getRight() - 12.0f);
 }
 
 void TransportBar::resized()
 {
-    auto area = getLocalBounds().reduced (12, barPadding);
-    const int gap = 6;
-    auto top = area.removeFromTop (rowHeight);
-    auto bottom = area;
-    bottom.removeFromTop (rowGap);
+    auto area = getLocalBounds().reduced (12, 0);
+    const int gap = 4;
+    const int centreY = getHeight() / 2;
 
-    auto place = [&] (juce::Component& c, int width, juce::Rectangle<int>& row)
+    auto place = [&] (juce::Component& c, int width, int height = buttonHeight)
     {
-        c.setBounds (row.removeFromLeft (width).withHeight (row.getHeight()).withY (row.getY()));
-        row.removeFromLeft (gap);
+        c.setBounds (area.getX(), centreY - height / 2, width, height);
+        area.removeFromLeft (width + gap);
     };
 
-    // Rangée 1 : transport et lecture
-    place (returnButton, 40, top);
-    place (playButton, 72, top);
-    place (recButton, 58, top);
-    place (loopButton, 66, top);
-    place (metroButton, 62, top);
-    top.removeFromLeft (6);
+    area.removeFromLeft (56);   // logo
 
-    auto position = top.removeFromLeft (138);
-    positionLabel.setBounds (position.removeFromTop (28));
-    secondsLabel.setBounds (position);
-    top.removeFromLeft (gap);
+    // Droite : CPU et volume maître.
+    cpuLabel.setBounds (area.removeFromRight (56).withSizeKeepingCentre (56, 18));
+    area.removeFromRight (gap);
+    masterSlider.setBounds (area.removeFromRight (84).withSizeKeepingCentre (84, 24));
+    masterLabel.setBounds (area.removeFromRight (0));
+    area.removeFromRight (gap * 2);
 
-    auto tempo = top.removeFromLeft (110);
-    tempoCaption.setBounds (tempo.removeFromTop (12));
-    auto tempoRow = tempo.withHeight (26).withY (tempo.getY() + 2);
-    tempoDownButton.setBounds (tempoRow.removeFromLeft (26));
-    tempoUpButton.setBounds (tempoRow.removeFromRight (26));
-    tempoLabel.setBounds (tempoRow);
-    top.removeFromLeft (gap);
+    // Droite : outils.
+    {
+        auto right = [&] (juce::Component& c, int width)
+        {
+            c.setBounds (area.getRight() - width, centreY - buttonHeight / 2, width, buttonHeight);
+            area.removeFromRight (width + gap);
+        };
 
-    place (sigLabel, 44, top);
-    top.removeFromLeft (4);
+        right (projectButton, 70);
+        right (libraryButton, 96);
+        right (menuButton, 62);
+        right (redoButton, 70);
+        right (undoButton, 66);
+    }
 
-    cpuLabel.setBounds (top.removeFromRight (58));
-    top.removeFromRight (gap);
-    masterLabel.setBounds (top.removeFromRight (52).reduced (0, 12));
-    masterSlider.setBounds (top.removeFromRight (92).reduced (0, 12));
+    // Gauche : transport.
+    place (returnButton, 32);
+    place (playButton, 38);
+    place (recButton, 38);
+    place (loopButton, 38);
+    place (metroButton, 56);
+    area.removeFromLeft (10);
 
-    // Rangée 2 : édition et outils
-    bottom.removeFromLeft (132);   // sous le logo
+    // Position, signature, tempo : au centre.
+    positionLabel.setBounds (area.getX(), centreY - 12, 76, 24);
+    area.removeFromLeft (76 + gap);
+    sigLabel.setBounds (area.getX(), centreY - 12, 36, 24);
+    area.removeFromLeft (36 + gap * 2);
 
-    place (undoButton, 52, bottom);
-    place (redoButton, 52, bottom);
-    place (tapButton, 44, bottom);
-    place (prevMarkerButton, 34, bottom);
-    place (addMarkerButton, 84, bottom);
-    place (nextMarkerButton, 34, bottom);
-    place (menuButton, 76, bottom);
-    place (libraryButton, 132, bottom);
-    place (projectButton, 76, bottom);
-
-    statusLabel.setBounds (bottom.reduced (0, 4));
+    tempoDownButton.setBounds (area.getX(), centreY - 11, 22, 22);
+    area.removeFromLeft (22);
+    tempoLabel.setBounds (area.getX(), centreY - 12, 50, 24);
+    area.removeFromLeft (50);
+    tempoUpButton.setBounds (area.getX(), centreY - 11, 22, 22);
+    area.removeFromLeft (22 + 2);
+    tempoCaption.setBounds (area.getX(), centreY - 9, 30, 18);
 }
 
 void TransportBar::refresh()
@@ -290,7 +283,7 @@ void TransportBar::refresh()
     redoButton.setEnabled (host.canRedo());
 
     const auto bb = host.getBarsBeats();
-    positionLabel.setText (juce::String::formatted ("%03d.%d", bb.bar, bb.beat), juce::dontSendNotification);
+    positionLabel.setText (juce::String::formatted ("%d.%d", bb.bar, bb.beat), juce::dontSendNotification);
     secondsLabel.setText (formatTime (host.getPositionSeconds()), juce::dontSendNotification);
     tempoLabel.setText (juce::String (host.getTempoBpm(), 1), juce::dontSendNotification);
 
@@ -303,6 +296,9 @@ void TransportBar::refresh()
 void TransportBar::setStatus (const juce::String& message)
 {
     statusLabel.setText (message, juce::dontSendNotification);
+
+    if (onStatus)
+        onStatus (message);
 }
 
 void TransportBar::setSnapLabel (const juce::String& label, bool active)
@@ -328,6 +324,11 @@ void TransportBar::showMenu()
     menu.addItem (6, tr ("Mixeur"));
     menu.addSeparator();
     menu.addItem (7, tr ("Magnétisme : ") + snapText, true, isSnapActive());
+    menu.addSeparator();
+    menu.addItem (8, tr ("Tap tempo"));
+    menu.addItem (9, tr ("Marqueur précédent"));
+    menu.addItem (10, tr ("Ajouter un marqueur"));
+    menu.addItem (11, tr ("Marqueur suivant"));
 
     menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (menuButton),
                         [safe = juce::Component::SafePointer<TransportBar> (this)] (int result)
@@ -348,6 +349,10 @@ void TransportBar::handleMenuChoice (int id)
         case 5: if (callbacks.audioSettings) callbacks.audioSettings(); break;
         case 6: if (callbacks.mixer)         callbacks.mixer();         break;
         case 7: if (callbacks.cycleSnap)     callbacks.cycleSnap();     break;
+        case 8: host.tapTempo(); refresh();                             break;
+        case 9: if (callbacks.prevMarker)    callbacks.prevMarker();    break;
+        case 10: if (callbacks.addMarker)    callbacks.addMarker();     break;
+        case 11: if (callbacks.nextMarker)   callbacks.nextMarker();    break;
         default: break;
     }
 }

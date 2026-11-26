@@ -1,0 +1,15 @@
+Session 26/11/2026 — Refonte UI v2 + ajouts add-track
+
+Fait
+- Refonte UI v2 appliquée (maquette sombre plate) : Palette, FdLookAndFeel, TransportBar 48 px, TrackRow 196x72, MixerDock ancré, barre d'état, icônes plates. verifier.sh + build_local.sh OK.
+- Ajouts demandés : menu Ajouter une piste (Instrument, Piste audio, Audio du disque local, Rythme/Batterie, Boucle placeholder, Piste MIDI vide) ; piste rythme = fdgpeDrum + PAS ouvre StepSequencer ciblé ; Séquenceur de pas retiré du menu Projet ; filtre Boucles placeholder dans PluginBrowser.
+- M3.1 validée par l'utilisateur (scan VST3 fonctionnel) et cochée dans ROADMAP.
+
+À faire maintenant
+1. Validation visuelle utilisateur de la refonte UI v2 + ajouts add-track.
+2. Après validation : commit/push propre (ne pas inclure .opencode/agents/chef.md ni organiser.sh supprimé sauf décision explicite), mettre à jour markdown restant si besoin (README/PROMPT_OPENCODE déjà partiellement à aligner).
+3. Continuer ROADMAP dans l'ordre : M3.4 (bus d'envoi, piste master, mixeur vertical) puis M3.5-M3.9 (Master dock, Navigateur, fenêtres plugins, groupes, SENDS/bus).
+
+Règles rappel
+- verifier.sh puis build_local.sh après chaque changement. Ne jamais lancer de compilation complète. Ne pas modifier sous-modules/options de compilation.
+- mixerDock->clear() avant suppression/reconstruction de pistes. Couleurs via Palette.h. Pas de dégradé/ombre, style maquette sombre plat.

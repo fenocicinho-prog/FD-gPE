@@ -21,13 +21,14 @@ public:
     PluginBrowser (EngineHost& host,
                    juce::String targetTrackName,
                    std::function<void (const PluginInfo&)> onAdd,
-                   std::function<void()> onClose);
+                   std::function<void()> onClose,
+                   int initialFilterId = 1);
 
     ~PluginBrowser() override;
 
     /** Ouvre le navigateur dans une fenêtre modale légère. Si \p track est
         nul, la liste reste consultable mais l'ajout est désactivé. */
-    static void show (EngineHost& host, te::AudioTrack* track);
+    static void show (EngineHost& host, te::AudioTrack* track, int initialFilterId = 1);
 
     void paint (juce::Graphics&) override;
     void resized() override;

@@ -26,6 +26,8 @@ target_sources(FDgPE PRIVATE
     src/ui/PianoRollEditor.cpp
     src/ui/TempoDialog.h
     src/ui/TempoDialog.cpp
+    src/ui/MixerDock.h
+    src/ui/MixerDock.cpp
     src/ui/MainComponent.h
     src/ui/MainComponent.cpp
     src/ui/MainWindow.h)
