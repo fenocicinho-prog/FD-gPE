@@ -230,6 +230,13 @@ public:
     bool isPluginBlacklisted (const juce::String&) const;
     void setPluginBlacklisted (const juce::String&, bool);
 
+    // Envois auxiliaires (Bus 1 fixe pour le premier slice M3.4).
+    void ensureAuxBus (int bus, const juce::String& name);
+    juce::String getAuxBusName (int bus) const;
+    te::AuxSendPlugin* getOrCreateAuxSend (te::AudioTrack&, int bus);
+    te::AuxSendPlugin* getAuxSend (te::AudioTrack&, int bus) const;
+    void removeAuxSend (te::AudioTrack&, int bus);
+
     // Apparence : préférences enregistrées hors du projet.
     void saveTheme (bool dark, const juce::Colour& accent);
     std::pair<bool, juce::Colour> loadTheme() const;

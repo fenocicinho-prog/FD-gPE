@@ -48,13 +48,28 @@ public:
                 vp->setPan ((float) pan.getValue());
         };
 
+        sendSlider.setSliderStyle (juce::Slider::LinearHorizontal);
+        sendSlider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
+        sendSlider.setRange (-60.0, 6.0, 0.1);
+        sendSlider.setDoubleClickReturnValue (true, -60.0);
+        sendSlider.setTooltip (tr ("Envoi Bus 1"));
+        sendSlider.onValueChange = [this]
+        {
+            if (auto* send = host.getOrCreateAuxSend (track, 0))
+            {
+                const float db = (float) sendSlider.getValue();
+                send->setMute (db <= -59.9f);
+                send->setGainDb (db <= -59.9f ? -60.0f : db);
+            }
+        };
+
         muteButton.onClick = [this] { track.setMute (! track.isMuted (false)); refresh(); };
         soloButton.onClick = [this] { track.setSolo (! track.isSolo (false));  refresh(); };
 
         pluginStrip.setVertical (true);
 
         for (juce::Component* c : { (juce::Component*) &nameLabel, (juce::Component*) &volume, (juce::Component*) &pan,
-                                    (juce::Component*) &muteButton, (juce::Component*) &soloButton,
+                                    (juce::Component*) &sendSlider, (juce::Component*) &muteButton, (juce::Component*) &soloButton,
                                     (juce::Component*) &pluginStrip })
             addAndMakeVisible (c);
 
@@ -82,6 +97,14 @@ public:
 
             if (! pan.isMouseButtonDown())
                 pan.setValue (vp->getPan(), juce::dontSendNotification);
+        }
+
+        if (! sendSlider.isMouseButtonDown())
+        {
+            if (auto* send = host.getAuxSend (track, 0))
+                sendSlider.setValue (send->isMute() ? -60.0 : (double) send->getGainDb(), juce::dontSendNotification);
+            else
+                sendSlider.setValue (-60.0, juce::dontSendNotification);
         }
 
         if (nameLabel.getText() != track.getName())
@@ -147,7 +170,8 @@ public:
         const int half = (width - 16) / 2;
 
         nameLabel.setBounds (2, 6, width - 4, 16);
-        pluginStrip.setBounds (6, 38, width - 12, 75);
+        pluginStrip.setBounds (6, 38, width - 12, 60);
+        sendSlider.setBounds (6, 100, width - 12, 16);
         pan.setBounds (6, 118, width - 12, 16);
 
         muteButton.setBounds (6, h - 28, half, 22);
@@ -166,7 +190,7 @@ private:
     te::AudioTrack& track;
     PluginStrip pluginStrip;
     juce::Label nameLabel;
-    juce::Slider volume, pan;
+    juce::Slider volume, pan, sendSlider;
     juce::TextButton muteButton { "M" }, soloButton { "S" };
     juce::Rectangle<int> meterBounds;
     te::LevelMeasurer::Client meterClient;

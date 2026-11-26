@@ -1438,6 +1438,51 @@ std::vector<te::Plugin::Ptr> EngineHost::getTrackPlugins (te::AudioTrack& track)
     return result;
 }
 
+void EngineHost::ensureAuxBus (int bus, const juce::String& name)
+{
+    if (edit->getAuxBusName (bus) != name)
+        edit->setAuxBusName (bus, name);
+}
+
+juce::String EngineHost::getAuxBusName (int bus) const
+{
+    return edit->getAuxBusName (bus);
+}
+
+te::AuxSendPlugin* EngineHost::getOrCreateAuxSend (te::AudioTrack& track, int bus)
+{
+    ensureAuxBus (bus, tr ("Bus ") + juce::String (bus + 1));
+
+    if (auto* send = track.getAuxSendPlugin (bus, te::AuxPosition::byBus))
+        return send;
+
+    auto plugin = edit->getPluginCache().createNewPlugin (te::AuxSendPlugin::xmlTypeName, {});
+
+    if (plugin == nullptr)
+        return nullptr;
+
+    track.pluginList.insertPlugin (plugin, track.pluginList.size(), nullptr);
+
+    if (auto* send = dynamic_cast<te::AuxSendPlugin*> (plugin.get()))
+    {
+        send->busNumber = bus;
+        return send;
+    }
+
+    return nullptr;
+}
+
+te::AuxSendPlugin* EngineHost::getAuxSend (te::AudioTrack& track, int bus) const
+{
+    return track.getAuxSendPlugin (bus, te::AuxPosition::byBus);
+}
+
+void EngineHost::removeAuxSend (te::AudioTrack& track, int bus)
+{
+    if (auto* send = track.getAuxSendPlugin (bus, te::AuxPosition::byBus))
+        send->removeFromParent();
+}
+
 void EngineHost::saveTheme (bool dark, const juce::Colour& accent)
 {
     auto& props = engine.getPropertyStorage().getPropertiesFile();
