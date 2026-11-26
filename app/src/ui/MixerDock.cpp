@@ -14,8 +14,8 @@ class MixerDock::Strip final : public juce::Component
 public:
     static constexpr int width = 76;
 
-    Strip (EngineHost& h, te::AudioTrack& t, Callbacks cb)
-        : host (h), track (t),
+    Strip (EngineHost& h, te::AudioTrack& t, Callbacks cb, MixerDock& d)
+        : host (h), track (t), dock (d),
           pluginStrip (h, t,
           {
               [this, cb] { if (cb.addPlugin) cb.addPlugin (track); },
@@ -55,11 +55,23 @@ public:
         sendSlider.setTooltip (tr ("Envoi Bus 1"));
         sendSlider.onValueChange = [this]
         {
+            const auto auxCountBefore = host.getAuxReturnTracks().size();
+
             if (auto* send = host.getOrCreateAuxSend (track, 0))
             {
                 const float db = (float) sendSlider.getValue();
                 send->setMute (db <= -59.9f);
                 send->setGainDb (db <= -59.9f ? -60.0f : db);
+            }
+
+            if (host.getAuxReturnTracks().size() != auxCountBefore)
+            {
+                juce::Component::SafePointer<MixerDock> safeDock (&dock);
+                juce::MessageManager::callAsync ([safeDock]
+                {
+                    if (safeDock != nullptr)
+                        safeDock->rebuild();
+                });
             }
         };
 
@@ -188,6 +200,7 @@ public:
 private:
     EngineHost& host;
     te::AudioTrack& track;
+    MixerDock& dock;
     PluginStrip pluginStrip;
     juce::Label nameLabel;
     juce::Slider volume, pan, sendSlider;
@@ -381,7 +394,14 @@ void MixerDock::rebuild()
 
     for (auto* track : host.getTracks())
     {
-        auto strip = std::make_unique<Strip> (host, *track, callbacks);
+        auto strip = std::make_unique<Strip> (host, *track, callbacks, *this);
+        content.addAndMakeVisible (*strip);
+        strips.push_back (std::move (strip));
+    }
+
+    for (auto* track : host.getAuxReturnTracks())
+    {
+        auto strip = std::make_unique<Strip> (host, *track, callbacks, *this);
         content.addAndMakeVisible (*strip);
         strips.push_back (std::move (strip));
     }

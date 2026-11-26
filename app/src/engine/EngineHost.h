@@ -124,6 +124,8 @@ public:
 
     bool isMidiTrack (te::AudioTrack&) const;
     bool isDrumTrack (te::AudioTrack&) const;
+    bool isAuxReturnTrack (te::AudioTrack&) const;
+    std::vector<te::AudioTrack*> getAuxReturnTracks();
 
     bool isTrackArmed (te::AudioTrack&);
     bool anyTrackArmed();

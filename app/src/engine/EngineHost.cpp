@@ -14,6 +14,7 @@ namespace
 {
     const juce::Identifier kindId       { "fdgpeKind" };
     const juce::Identifier drumId       { "fdgpeDrum" };
+    const juce::Identifier auxReturnId  { "fdgpeAuxReturn" };
     const juce::Identifier colourId     { "fdgpeColour" };
     const char* const keyboardDeviceName = "Clavier FD gPE";
 
@@ -274,7 +275,8 @@ std::vector<te::AudioTrack*> EngineHost::getTracks()
     std::vector<te::AudioTrack*> result;
 
     for (auto* t : te::getAudioTracks (*edit))
-        result.push_back (t);
+        if (! isAuxReturnTrack (*t))
+            result.push_back (t);
 
     return result;
 }
@@ -287,6 +289,22 @@ bool EngineHost::isMidiTrack (te::AudioTrack& track) const
 bool EngineHost::isDrumTrack (te::AudioTrack& track) const
 {
     return (bool) track.state.getProperty (drumId, false);
+}
+
+bool EngineHost::isAuxReturnTrack (te::AudioTrack& track) const
+{
+    return track.state.hasProperty (auxReturnId);
+}
+
+std::vector<te::AudioTrack*> EngineHost::getAuxReturnTracks()
+{
+    std::vector<te::AudioTrack*> result;
+
+    for (auto* t : te::getAudioTracks (*edit))
+        if (isAuxReturnTrack (*t))
+            result.push_back (t);
+
+    return result;
 }
 
 int EngineHost::countTracksOfKind (bool midi)
@@ -1486,43 +1504,54 @@ void EngineHost::removeAuxSend (te::AudioTrack& track, int bus)
 
 te::AuxReturnPlugin* EngineHost::ensureAuxReturn (int bus)
 {
-    auto* master = edit->getMasterTrack();
-
-    if (master == nullptr)
-        return nullptr;
-
-    for (auto* ret : master->pluginList.getPluginsOfType<te::AuxReturnPlugin>())
+    // Migration douce : retire un ancien retour Bus placé sur le master.
+    if (auto* master = edit->getMasterTrack())
     {
-        if (ret->busNumber != bus)
-            continue;
-
-        if (auto* meter = master->pluginList.getPluginsOfType<te::LevelMeterPlugin>().getLast())
+        for (auto* ret : master->pluginList.getPluginsOfType<te::AuxReturnPlugin>())
         {
-            const int meterIndex = master->pluginList.indexOf (meter);
-            const int retIndex = master->pluginList.indexOf (ret);
-
-            if (meterIndex >= 0 && retIndex > meterIndex)
+            if (ret->busNumber == bus)
             {
                 ret->removeFromParent();
                 break;
             }
         }
-
-        return ret;
     }
+
+    te::AudioTrack* returnTrack = nullptr;
+
+    for (auto* t : te::getAudioTracks (*edit))
+    {
+        if (isAuxReturnTrack (*t) && (int) t->state.getProperty (auxReturnId, -1) == bus)
+        {
+            returnTrack = t;
+            break;
+        }
+    }
+
+    if (returnTrack == nullptr)
+    {
+        edit->ensureNumberOfAudioTracks (te::getAudioTracks (*edit).size() + 1);
+        returnTrack = te::getAudioTracks (*edit).getLast();
+
+        if (returnTrack == nullptr)
+            return nullptr;
+
+        returnTrack->state.setProperty (auxReturnId, bus, nullptr);
+        returnTrack->state.setProperty (kindId, "audio", nullptr);
+        returnTrack->setName (tr ("Retour Bus ") + juce::String (bus + 1));
+        returnTrack->setColour (juce::Colour (0xff5a8a6a));
+    }
+
+    for (auto* ret : returnTrack->pluginList.getPluginsOfType<te::AuxReturnPlugin>())
+        if (ret->busNumber == bus)
+            return ret;
 
     auto plugin = edit->getPluginCache().createNewPlugin (te::AuxReturnPlugin::xmlTypeName, {});
 
     if (plugin == nullptr)
         return nullptr;
 
-    int insertIndex = master->pluginList.size();
-
-    if (auto* meter = master->pluginList.getPluginsOfType<te::LevelMeterPlugin>().getLast())
-        if (const int meterIndex = master->pluginList.indexOf (meter); meterIndex >= 0)
-            insertIndex = meterIndex;
-
-    master->pluginList.insertPlugin (plugin, insertIndex, nullptr);
+    returnTrack->pluginList.insertPlugin (plugin, 0, nullptr);
 
     if (auto* ret = dynamic_cast<te::AuxReturnPlugin*> (plugin.get()))
     {
