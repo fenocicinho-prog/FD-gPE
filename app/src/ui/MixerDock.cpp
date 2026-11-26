@@ -239,20 +239,20 @@ public:
                                     (juce::Component*) &muteButton, (juce::Component*) &soloButton })
             addAndMakeVisible (c);
 
-        if (auto* meter = getMasterMeter())
-            meter->measurer.addClient (meterClient);
-
+        ensureMeterAttached();
         refresh();
     }
 
     ~MasterStrip() override
     {
-        if (auto* meter = getMasterMeter())
-            meter->measurer.removeClient (meterClient);
+        if (attachedMeasurer != nullptr)
+            attachedMeasurer->removeClient (meterClient);
     }
 
     void refresh()
     {
+        ensureMeterAttached();
+
         if (auto vp = host.getEdit().getMasterVolumePlugin())
         {
             if (! volume.isMouseButtonDown())
@@ -265,6 +265,7 @@ public:
 
     void updateMeter()
     {
+        ensureMeterAttached();
         float db = -100.0f;
 
         for (int ch = 0; ch < meterClient.getNumChannelsUsed(); ++ch)
@@ -324,12 +325,21 @@ public:
     }
 
 private:
-    te::LevelMeterPlugin* getMasterMeter() const
+    void ensureMeterAttached()
     {
-        if (auto* master = host.getEdit().getMasterTrack())
-            return master->pluginList.getPluginsOfType<te::LevelMeterPlugin>().getLast();
+        auto* ctx = host.getEdit().getCurrentPlaybackContext();
+        auto* measurer = ctx != nullptr ? &ctx->masterLevels : nullptr;
 
-        return nullptr;
+        if (measurer == attachedMeasurer)
+            return;
+
+        if (attachedMeasurer != nullptr)
+            attachedMeasurer->removeClient (meterClient);
+
+        attachedMeasurer = measurer;
+
+        if (attachedMeasurer != nullptr)
+            attachedMeasurer->addClient (meterClient);
     }
 
     EngineHost& host;
@@ -338,6 +348,7 @@ private:
     juce::TextButton muteButton { "M" }, soloButton { "S" };
     juce::Rectangle<int> meterBounds;
     te::LevelMeasurer::Client meterClient;
+    te::LevelMeasurer* attachedMeasurer = nullptr;
     float meterLevel = 0.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MasterStrip)

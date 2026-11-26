@@ -236,6 +236,7 @@ public:
     te::AuxSendPlugin* getOrCreateAuxSend (te::AudioTrack&, int bus);
     te::AuxSendPlugin* getAuxSend (te::AudioTrack&, int bus) const;
     void removeAuxSend (te::AudioTrack&, int bus);
+    te::AuxReturnPlugin* ensureAuxReturn (int bus);
 
     // Apparence : préférences enregistrées hors du projet.
     void saveTheme (bool dark, const juce::Colour& accent);

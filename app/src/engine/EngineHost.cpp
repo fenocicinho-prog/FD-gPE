@@ -1452,6 +1452,7 @@ juce::String EngineHost::getAuxBusName (int bus) const
 te::AuxSendPlugin* EngineHost::getOrCreateAuxSend (te::AudioTrack& track, int bus)
 {
     ensureAuxBus (bus, tr ("Bus ") + juce::String (bus + 1));
+    ensureAuxReturn (bus);
 
     if (auto* send = track.getAuxSendPlugin (bus, te::AuxPosition::byBus))
         return send;
@@ -1481,6 +1482,55 @@ void EngineHost::removeAuxSend (te::AudioTrack& track, int bus)
 {
     if (auto* send = track.getAuxSendPlugin (bus, te::AuxPosition::byBus))
         send->removeFromParent();
+}
+
+te::AuxReturnPlugin* EngineHost::ensureAuxReturn (int bus)
+{
+    auto* master = edit->getMasterTrack();
+
+    if (master == nullptr)
+        return nullptr;
+
+    for (auto* ret : master->pluginList.getPluginsOfType<te::AuxReturnPlugin>())
+    {
+        if (ret->busNumber != bus)
+            continue;
+
+        if (auto* meter = master->pluginList.getPluginsOfType<te::LevelMeterPlugin>().getLast())
+        {
+            const int meterIndex = master->pluginList.indexOf (meter);
+            const int retIndex = master->pluginList.indexOf (ret);
+
+            if (meterIndex >= 0 && retIndex > meterIndex)
+            {
+                ret->removeFromParent();
+                break;
+            }
+        }
+
+        return ret;
+    }
+
+    auto plugin = edit->getPluginCache().createNewPlugin (te::AuxReturnPlugin::xmlTypeName, {});
+
+    if (plugin == nullptr)
+        return nullptr;
+
+    int insertIndex = master->pluginList.size();
+
+    if (auto* meter = master->pluginList.getPluginsOfType<te::LevelMeterPlugin>().getLast())
+        if (const int meterIndex = master->pluginList.indexOf (meter); meterIndex >= 0)
+            insertIndex = meterIndex;
+
+    master->pluginList.insertPlugin (plugin, insertIndex, nullptr);
+
+    if (auto* ret = dynamic_cast<te::AuxReturnPlugin*> (plugin.get()))
+    {
+        ret->busNumber = bus;
+        return ret;
+    }
+
+    return nullptr;
 }
 
 void EngineHost::saveTheme (bool dark, const juce::Colour& accent)

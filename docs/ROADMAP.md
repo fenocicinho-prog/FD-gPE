@@ -154,7 +154,7 @@ fenêtre est maintenant créée avec `create()` puis rendue visible : elle est n
       revues @interface et @relecteur sans réserve. **Validée par l'utilisateur le 26/11** (scan VST3 fonctionnel).
 - [x] **M3.2** Insérer un plugin sur une piste avec une tuile (image + nom) ; ouvrir sa fenêtre.
 - [x] **M3.3** Effets intégrés (égaliseur, compresseur, réverbération, délai) proposés en tuiles.
-- [ ] **M3.4** Bus d'envoi, piste master, mixeur vertical. *Partiel : tranche MASTER (26/11) + premier slice SEND Bus 1 (slider par piste, AuxSendPlugin) validé le 26/11 ; retour/bus AuxReturn audible et bus d’envoi complets manquants.*
+- [ ] **M3.4** Bus d'envoi, piste master, mixeur vertical. *Partiel : tranche MASTER (26/11) + SEND Bus 1 + AuxReturn Bus 1 audible sur le master (26/11), vu-mètre master corrigé via `EditPlaybackContext::masterLevels`. Reste : bus/retours dédiés visibles, bus d’envoi complets, routage plus complet.*
 - [x] **M3.5** Tranche **MASTER** dans le MixerDock (fader, vu-mètre, M/S), alignée avec la maquette. *Validée 26/11 : M/S désactivés (limite API Tracktion master).*
 - [ ] **M3.6** Panneau Navigateur redessiné (dossiers, recherche) dans le style de la maquette.
 - [ ] **M3.7** Fenêtres de plugins flottantes au style de l'application (sombre plat, accent vert clair).
