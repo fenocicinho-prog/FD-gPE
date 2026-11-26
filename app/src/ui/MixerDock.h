@@ -43,12 +43,14 @@ public:
 
 private:
     class Strip;
+    class MasterStrip;
 
     EngineHost& host;
     Callbacks callbacks;
     juce::Viewport viewport;
     juce::Component content;
     std::vector<std::unique_ptr<Strip>> strips;
+    std::unique_ptr<MasterStrip> masterStrip;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MixerDock)
 };

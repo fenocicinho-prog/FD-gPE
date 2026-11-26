@@ -176,6 +176,150 @@ private:
 };
 
 //==============================================================================
+class MixerDock::MasterStrip final : public juce::Component
+{
+public:
+    static constexpr int width = 76;
+
+    explicit MasterStrip (EngineHost& h) : host (h)
+    {
+        nameLabel.setText (tr ("MASTER"), juce::dontSendNotification);
+        nameLabel.setFont (juce::Font (juce::FontOptions (11.0f, juce::Font::bold)));
+        nameLabel.setJustificationType (juce::Justification::centred);
+        nameLabel.setInterceptsMouseClicks (false, false);
+
+        volume.setSliderStyle (juce::Slider::LinearVertical);
+        volume.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
+        volume.setRange (0.0, 1.0, 0.0);
+        volume.setDoubleClickReturnValue (true, (double) te::decibelsToVolumeFaderPosition (0.0f));
+        volume.onValueChange = [this]
+        {
+            if (auto vp = host.getEdit().getMasterVolumePlugin())
+                vp->setSliderPos ((float) volume.getValue());
+        };
+
+        pan.setSliderStyle (juce::Slider::LinearHorizontal);
+        pan.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
+        pan.setRange (-1.0, 1.0, 0.0);
+        pan.setDoubleClickReturnValue (true, 0.0);
+        pan.onValueChange = [this]
+        {
+            if (auto vp = host.getEdit().getMasterVolumePlugin())
+                vp->setPan ((float) pan.getValue());
+        };
+
+        muteButton.setEnabled (false);
+        soloButton.setEnabled (false);
+
+        for (juce::Component* c : { (juce::Component*) &nameLabel, (juce::Component*) &volume, (juce::Component*) &pan,
+                                    (juce::Component*) &muteButton, (juce::Component*) &soloButton })
+            addAndMakeVisible (c);
+
+        if (auto* meter = getMasterMeter())
+            meter->measurer.addClient (meterClient);
+
+        refresh();
+    }
+
+    ~MasterStrip() override
+    {
+        if (auto* meter = getMasterMeter())
+            meter->measurer.removeClient (meterClient);
+    }
+
+    void refresh()
+    {
+        if (auto vp = host.getEdit().getMasterVolumePlugin())
+        {
+            if (! volume.isMouseButtonDown())
+                volume.setValue (vp->getSliderPos(), juce::dontSendNotification);
+
+            if (! pan.isMouseButtonDown())
+                pan.setValue (vp->getPan(), juce::dontSendNotification);
+        }
+    }
+
+    void updateMeter()
+    {
+        float db = -100.0f;
+
+        for (int ch = 0; ch < meterClient.getNumChannelsUsed(); ++ch)
+            db = juce::jmax (db, meterClient.getAndClearAudioLevel (ch).dB);
+
+        const float target = juce::jlimit (0.0f, 1.0f, juce::jmap (db, -60.0f, 0.0f, 0.0f, 1.0f));
+        const float previous = meterLevel;
+        meterLevel = target > meterLevel ? target : meterLevel * 0.80f;
+
+        if (std::abs (meterLevel - previous) > 0.02f)
+            repaint (meterBounds.expanded (2));
+    }
+
+    void paint (juce::Graphics& g) override
+    {
+        auto r = getLocalBounds().toFloat();
+        g.setColour (palette::strip.darker (0.05f));
+        g.fillRect (r);
+
+        g.setColour (palette::blue);
+        g.fillRect (r.getX(), 0.0f, r.getWidth(), 3.0f);
+
+        g.setColour (palette::line);
+        g.drawVerticalLine (getWidth() - 1, 0.0f, r.getBottom());
+        g.drawVerticalLine (0, 0.0f, r.getBottom());
+
+        const auto m = meterBounds.toFloat();
+        const int segments = 28;
+        const float gap = 1.0f;
+        const float segH = (m.getHeight() - gap * (float) (segments - 1)) / (float) segments;
+        const int lit = juce::roundToInt (meterLevel * (float) segments);
+
+        for (int i = 0; i < segments; ++i)
+        {
+            const float y = m.getBottom() - (float) (i + 1) * segH - (float) i * gap;
+            const auto colour = i < 20 ? palette::blue : (i < 24 ? palette::amber : palette::red);
+            g.setColour (i < lit ? colour : palette::line);
+            g.fillRect (m.getX(), y, m.getWidth(), segH);
+        }
+    }
+
+    void resized() override
+    {
+        const int h = getHeight();
+        const int half = (width - 16) / 2;
+
+        nameLabel.setBounds (2, 6, width - 4, 16);
+        pan.setBounds (6, 118, width - 12, 16);
+
+        muteButton.setBounds (6, h - 28, half, 22);
+        soloButton.setBounds (6 + half + 4, h - 28, half, 22);
+
+        const int faderTop = 142;
+        const int faderBottom = h - 36;
+        meterBounds = { 12, faderTop + 4, 8, faderBottom - faderTop - 8 };
+        volume.setBounds (28, faderTop, 40, faderBottom - faderTop);
+    }
+
+private:
+    te::LevelMeterPlugin* getMasterMeter() const
+    {
+        if (auto* master = host.getEdit().getMasterTrack())
+            return master->pluginList.getPluginsOfType<te::LevelMeterPlugin>().getLast();
+
+        return nullptr;
+    }
+
+    EngineHost& host;
+    juce::Label nameLabel;
+    juce::Slider volume, pan;
+    juce::TextButton muteButton { "M" }, soloButton { "S" };
+    juce::Rectangle<int> meterBounds;
+    te::LevelMeasurer::Client meterClient;
+    float meterLevel = 0.0f;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MasterStrip)
+};
+
+//==============================================================================
 MixerDock::MixerDock (EngineHost& h, Callbacks cb)
     : host (h), callbacks (std::move (cb))
 {
@@ -193,6 +337,7 @@ MixerDock::~MixerDock()
 void MixerDock::clear()
 {
     strips.clear();
+    masterStrip.reset();
 }
 
 void MixerDock::rebuild()
@@ -206,6 +351,9 @@ void MixerDock::rebuild()
         strips.push_back (std::move (strip));
     }
 
+    masterStrip = std::make_unique<MasterStrip> (host);
+    addAndMakeVisible (*masterStrip);
+
     resized();
 }
 
@@ -213,12 +361,18 @@ void MixerDock::refresh()
 {
     for (auto& strip : strips)
         strip->refresh();
+
+    if (masterStrip != nullptr)
+        masterStrip->refresh();
 }
 
 void MixerDock::updateMeters()
 {
     for (auto& strip : strips)
         strip->updateMeter();
+
+    if (masterStrip != nullptr)
+        masterStrip->updateMeter();
 }
 
 void MixerDock::paint (juce::Graphics& g)
@@ -237,7 +391,12 @@ void MixerDock::paint (juce::Graphics& g)
 
 void MixerDock::resized()
 {
-    viewport.setBounds (getLocalBounds().withTrimmedTop (1));
+    auto area = getLocalBounds().withTrimmedTop (1);
+
+    if (masterStrip != nullptr)
+        masterStrip->setBounds (area.removeFromRight (MasterStrip::width));
+
+    viewport.setBounds (area);
 
     const int contentHeight = juce::jmax (100, dockHeight - 1 - viewport.getScrollBarThickness());
     const int contentWidth = juce::jmax (viewport.getMaximumVisibleWidth(), (int) strips.size() * Strip::width);
