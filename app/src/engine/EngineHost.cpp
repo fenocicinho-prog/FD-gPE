@@ -495,6 +495,7 @@ void EngineHost::setTrackArmed (te::AudioTrack& track, bool armed)
     if (armed)
     {
         const bool midi = isMidiTrack (track);
+        const auto selectedInputId = midi ? juce::String {} : getTrackInputDeviceId (track);
 
         for (auto* instance : edit->getAllInputDevices())
         {
@@ -502,7 +503,8 @@ void EngineHost::setTrackArmed (te::AudioTrack& track, bool armed)
 
             const bool matches = midi ? (dynamic_cast<te::VirtualMidiInputDevice*> (&device) != nullptr
                                          && ! device.isTrackDevice())
-                                      : device.getDeviceType() == te::InputDevice::waveDevice;
+                                      : (device.getDeviceType() == te::InputDevice::waveDevice
+                                         && (selectedInputId.isEmpty() || device.getDeviceID() == selectedInputId));
 
             if (! matches)
                 continue;
@@ -1666,6 +1668,86 @@ void EngineHost::setTrackOutputDeviceId (te::AudioTrack& track, const juce::Stri
     }
 
     track.getOutput().setOutputToDeviceID (deviceId);
+}
+
+juce::StringArray EngineHost::getInputDeviceNames() const
+{
+    juce::StringArray names;
+    names.add (tr ("Entrée par défaut"));
+
+    auto& dm = engine.getDeviceManager();
+
+    for (int i = 0; i < dm.getNumInputDevices(); ++i)
+    {
+        if (auto* in = dm.getInputDevice (i))
+            if (in->isEnabled() && ! in->isMidi() && ! in->isTrackDevice())
+                names.add (in->getAliasOrName());
+    }
+
+    return names;
+}
+
+juce::StringArray EngineHost::getInputDeviceIds() const
+{
+    juce::StringArray ids;
+    ids.add ({});
+
+    auto& dm = engine.getDeviceManager();
+
+    for (int i = 0; i < dm.getNumInputDevices(); ++i)
+    {
+        if (auto* in = dm.getInputDevice (i))
+            if (in->isEnabled() && ! in->isMidi() && ! in->isTrackDevice())
+                ids.add (in->getDeviceID());
+    }
+
+    return ids;
+}
+
+juce::String EngineHost::getTrackInputDeviceId (te::AudioTrack& track) const
+{
+    for (auto* instance : edit->getAllInputDevices())
+    {
+        auto& device = instance->getInputDevice();
+
+        if (device.isMidi() || device.isTrackDevice())
+            continue;
+
+        if (te::isOnTargetTrack (*instance, track, 0))
+            return device.getDeviceID();
+    }
+
+    return {};
+}
+
+void EngineHost::setTrackInputDeviceId (te::AudioTrack& track, const juce::String& deviceId)
+{
+    auto& undo = edit->getUndoManager();
+
+    for (auto* instance : edit->getAllInputDevices())
+    {
+        auto& device = instance->getInputDevice();
+
+        if (device.isMidi() || device.isTrackDevice())
+            continue;
+
+        if (te::isOnTargetTrack (*instance, track, 0))
+            [[ maybe_unused ]] auto res = instance->removeTarget (track.itemID, &undo);
+    }
+
+    if (deviceId.isEmpty())
+        return;
+
+    for (auto* instance : edit->getAllInputDevices())
+    {
+        auto& device = instance->getInputDevice();
+
+        if (device.getDeviceID() != deviceId || device.isMidi() || device.isTrackDevice())
+            continue;
+
+        [[ maybe_unused ]] auto result = instance->setTarget (track.itemID, true, &undo, 0);
+        return;
+    }
 }
 
 void EngineHost::saveTheme (bool dark, const juce::Colour& accent)

@@ -28,6 +28,16 @@ public:
         nameLabel.setJustificationType (juce::Justification::centred);
         nameLabel.setInterceptsMouseClicks (false, false);
 
+        inputSelector.setTooltip (tr ("Entrée audio"));
+        inputSelector.onChange = [this]
+        {
+            const auto ids = host.getInputDeviceIds();
+            const int index = inputSelector.getSelectedId() - 1;
+
+            if (juce::isPositiveAndBelow (index, ids.size()))
+                host.setTrackInputDeviceId (track, ids[index]);
+        };
+
         outputSelector.setTooltip (tr ("Sortie audio"));
         outputSelector.onChange = [this]
         {
@@ -118,7 +128,7 @@ public:
 
         pluginStrip.setVertical (true);
 
-        for (juce::Component* c : { (juce::Component*) &nameLabel, (juce::Component*) &outputSelector, (juce::Component*) &volume, (juce::Component*) &pan,
+        for (juce::Component* c : { (juce::Component*) &nameLabel, (juce::Component*) &inputSelector, (juce::Component*) &outputSelector, (juce::Component*) &volume, (juce::Component*) &pan,
                                     (juce::Component*) &sendBus, (juce::Component*) &sendSlider, (juce::Component*) &muteButton, (juce::Component*) &soloButton,
                                     (juce::Component*) &pluginStrip })
             addAndMakeVisible (c);
@@ -139,6 +149,39 @@ public:
     {
         muteButton.setToggleState (track.isMuted (false), juce::dontSendNotification);
         soloButton.setToggleState (track.isSolo (false), juce::dontSendNotification);
+
+        const bool showInput = ! host.isMidiTrack (track);
+        inputSelector.setVisible (showInput);
+
+        if (showInput && ! inputSelector.isPopupActive())
+        {
+            const auto names = host.getInputDeviceNames();
+            const auto ids = host.getInputDeviceIds();
+            bool changed = inputSelector.getNumItems() != names.size();
+
+            for (int i = 0; ! changed && i < names.size(); ++i)
+                changed = inputSelector.getItemText (i) != names[i];
+
+            if (changed)
+            {
+                inputSelector.clear (juce::dontSendNotification);
+                for (int i = 0; i < names.size(); ++i)
+                    inputSelector.addItem (names[i], i + 1);
+            }
+
+            const auto currentId = host.getTrackInputDeviceId (track);
+            int selectedId = 1;
+
+            for (int i = 0; i < ids.size(); ++i)
+                if (ids[i] == currentId)
+                {
+                    selectedId = i + 1;
+                    break;
+                }
+
+            if (inputSelector.getSelectedId() != selectedId)
+                inputSelector.setSelectedId (selectedId, juce::dontSendNotification);
+        }
 
         if (! outputSelector.isPopupActive())
         {
@@ -275,17 +318,18 @@ public:
         const int half = (width - 16) / 2;
 
         nameLabel.setBounds (2, 4, width - 4, 13);
-        outputSelector.setBounds (6, 18, width - 12, 14);
-        pluginStrip.setBounds (6, 34, width - 12, 44);
-        sendBus.setBounds (6, 80, width - 12, 14);
-        sendSlider.setBounds (6, 96, width - 12, 14);
-        pan.setBounds (6, 112, width - 12, 16);
+        inputSelector.setBounds (6, 18, width - 12, 14);
+        outputSelector.setBounds (6, 34, width - 12, 14);
+        pluginStrip.setBounds (6, 50, width - 12, 36);
+        sendBus.setBounds (6, 88, width - 12, 14);
+        sendSlider.setBounds (6, 104, width - 12, 14);
+        pan.setBounds (6, 120, width - 12, 16);
 
         muteButton.setBounds (6, h - 28, half, 22);
         soloButton.setBounds (6 + half + 4, h - 28, half, 22);
 
         // Fader long : toute la hauteur restante, pour un réglage fin du volume.
-        const int faderTop = 136;
+        const int faderTop = 144;
         const int faderBottom = h - 36;
 
         meterBounds = { 12, faderTop + 4, 8, faderBottom - faderTop - 8 };
@@ -325,6 +369,7 @@ private:
     MixerDock& dock;
     PluginStrip pluginStrip;
     juce::Label nameLabel;
+    juce::ComboBox inputSelector;
     juce::ComboBox outputSelector;
     juce::ComboBox sendBus;
     juce::Slider volume, pan, sendSlider;

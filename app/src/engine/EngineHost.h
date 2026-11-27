@@ -250,6 +250,12 @@ public:
     juce::String getTrackOutputDeviceId (te::AudioTrack&) const;
     void setTrackOutputDeviceId (te::AudioTrack&, const juce::String& deviceId);
 
+    // Routage entrée par piste (M3.10).
+    juce::StringArray getInputDeviceNames() const;
+    juce::StringArray getInputDeviceIds() const;
+    juce::String getTrackInputDeviceId (te::AudioTrack&) const;
+    void setTrackInputDeviceId (te::AudioTrack&, const juce::String& deviceId);
+
     // Apparence : préférences enregistrées hors du projet.
     void saveTheme (bool dark, const juce::Colour& accent);
     std::pair<bool, juce::Colour> loadTheme() const;
