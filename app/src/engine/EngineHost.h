@@ -125,6 +125,7 @@ public:
     bool isMidiTrack (te::AudioTrack&) const;
     bool isDrumTrack (te::AudioTrack&) const;
     bool isAuxReturnTrack (te::AudioTrack&) const;
+    int getAuxReturnBus (te::AudioTrack&) const;
     std::vector<te::AudioTrack*> getAuxReturnTracks();
 
     bool isTrackArmed (te::AudioTrack&);
@@ -235,6 +236,8 @@ public:
     // Envois auxiliaires (Bus 1 fixe pour le premier slice M3.4).
     void ensureAuxBus (int bus, const juce::String& name);
     juce::String getAuxBusName (int bus) const;
+    juce::String getAuxBusDisplayName (int bus) const;
+    void setAuxBusName (int bus, const juce::String& name);
     te::AuxSendPlugin* getOrCreateAuxSend (te::AudioTrack&, int bus);
     te::AuxSendPlugin* getAuxSend (te::AudioTrack&, int bus) const;
     void removeAuxSend (te::AudioTrack&, int bus);

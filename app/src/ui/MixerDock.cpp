@@ -62,7 +62,7 @@ public:
             const auto auxCountBefore = host.getAuxReturnTracks().size();
             host.setAuxSendBus (track, currentBus, newBus);
             currentBus = newBus;
-            sendSlider.setTooltip (tr ("Envoi Bus ") + juce::String (currentBus + 1));
+            sendSlider.setTooltip (tr ("Envoi ") + host.getAuxBusDisplayName (currentBus));
             refresh();
 
             if (host.getAuxReturnTracks().size() != auxCountBefore)
@@ -159,8 +159,12 @@ public:
             {
                 currentBus = detectedBus;
                 sendBus.setSelectedId (currentBus + 1, juce::dontSendNotification);
-                sendSlider.setTooltip (tr ("Envoi Bus ") + juce::String (currentBus + 1));
             }
+
+            for (int bus = 0; bus < 4; ++bus)
+                sendBus.changeItemText (bus + 1, host.getAuxBusDisplayName (bus));
+
+            sendSlider.setTooltip (tr ("Envoi ") + host.getAuxBusDisplayName (currentBus));
 
             if (auto* send = host.getAuxSend (track, currentBus))
                 sendSlider.setValue (send->isMute() ? -60.0 : (double) send->getGainDb(), juce::dontSendNotification);
@@ -245,6 +249,33 @@ public:
 
         meterBounds = { 12, faderTop + 4, 8, faderBottom - faderTop - 8 };
         volume.setBounds (28, faderTop, 40, faderBottom - faderTop);
+    }
+
+    void mouseDoubleClick (const juce::MouseEvent& e) override
+    {
+        if (! host.isAuxReturnTrack (track) || ! nameLabel.getBounds().contains (e.getPosition()))
+            return;
+
+        const int bus = host.getAuxReturnBus (track);
+
+        if (bus < 0)
+            return;
+
+        juce::AlertWindow w (tr ("Renommer le bus"), {}, juce::AlertWindow::NoIcon, this);
+        w.addTextEditor ("name", host.getAuxBusDisplayName (bus), tr ("Nom du bus :"));
+        w.addButton (tr ("OK"), 1, juce::KeyPress (juce::KeyPress::returnKey));
+        w.addButton (tr ("Annuler"), 0, juce::KeyPress (juce::KeyPress::escapeKey));
+
+        if (w.runModalLoop() == 1)
+        {
+            host.setAuxBusName (bus, w.getTextEditorContents ("name"));
+            juce::Component::SafePointer<MixerDock> safeDock (&dock);
+            juce::MessageManager::callAsync ([safeDock]
+            {
+                if (safeDock != nullptr)
+                    safeDock->rebuild();
+            });
+        }
     }
 
 private:

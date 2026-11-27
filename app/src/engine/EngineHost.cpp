@@ -296,6 +296,11 @@ bool EngineHost::isAuxReturnTrack (te::AudioTrack& track) const
     return track.state.hasProperty (auxReturnId);
 }
 
+int EngineHost::getAuxReturnBus (te::AudioTrack& track) const
+{
+    return (int) track.state.getProperty (auxReturnId, -1);
+}
+
 std::vector<te::AudioTrack*> EngineHost::getAuxReturnTracks()
 {
     std::vector<te::AudioTrack*> result;
@@ -1467,9 +1472,36 @@ juce::String EngineHost::getAuxBusName (int bus) const
     return edit->getAuxBusName (bus);
 }
 
+juce::String EngineHost::getAuxBusDisplayName (int bus) const
+{
+    const auto name = edit->getAuxBusName (bus).trim();
+    return name.isNotEmpty() ? name : (tr ("Bus ") + juce::String (bus + 1));
+}
+
+void EngineHost::setAuxBusName (int bus, const juce::String& name)
+{
+    const auto trimmed = name.trim().substring (0, 24);
+    const auto defaultName = tr ("Bus ") + juce::String (bus + 1);
+    const auto stored = (trimmed.isEmpty() || trimmed == defaultName) ? juce::String() : trimmed;
+    const auto display = stored.isNotEmpty() ? stored : defaultName;
+
+    if (edit->getAuxBusName (bus) != stored)
+        edit->setAuxBusName (bus, stored);
+
+    for (auto* t : te::getAudioTracks (*edit))
+    {
+        if (isAuxReturnTrack (*t) && (int) t->state.getProperty (auxReturnId, -1) == bus)
+        {
+            t->setName (tr ("Retour ") + display);
+            break;
+        }
+    }
+}
+
 te::AuxSendPlugin* EngineHost::getOrCreateAuxSend (te::AudioTrack& track, int bus)
 {
-    ensureAuxBus (bus, tr ("Bus ") + juce::String (bus + 1));
+    if (getAuxBusName (bus).isEmpty())
+        ensureAuxBus (bus, tr ("Bus ") + juce::String (bus + 1));
     ensureAuxReturn (bus);
 
     if (auto* send = track.getAuxSendPlugin (bus, te::AuxPosition::byBus))
@@ -1558,9 +1590,12 @@ te::AuxReturnPlugin* EngineHost::ensureAuxReturn (int bus)
 
         returnTrack->state.setProperty (auxReturnId, bus, nullptr);
         returnTrack->state.setProperty (kindId, "audio", nullptr);
-        returnTrack->setName (tr ("Retour Bus ") + juce::String (bus + 1));
         returnTrack->setColour (juce::Colour (0xff5a8a6a));
     }
+
+    const auto returnName = tr ("Retour ") + getAuxBusDisplayName (bus);
+    if (returnTrack->getName() != returnName)
+        returnTrack->setName (returnName);
 
     for (auto* ret : returnTrack->pluginList.getPluginsOfType<te::AuxReturnPlugin>())
         if (ret->busNumber == bus)
