@@ -2,8 +2,16 @@ juce_add_gui_app(FDgPE
     PRODUCT_NAME "FDgPE"
     COMPANY_NAME "FD gPE contributors"
     BUNDLE_ID "org.fdgpe.app"
+    ICON_BIG "${CMAKE_CURRENT_SOURCE_DIR}/resources/icon-512.png"
+    ICON_SMALL "${CMAKE_CURRENT_SOURCE_DIR}/resources/icon-256.png"
     MICROPHONE_PERMISSION_ENABLED TRUE
     MICROPHONE_PERMISSION_TEXT "FD gPE enregistre l'audio de vos pistes.")
+
+juce_add_binary_data(FDgPE_assets
+    NAMESPACE fdgpe_assets
+    SOURCES
+        resources/icon-512.png
+        resources/icon-256.png)
 
 target_sources(FDgPE PRIVATE
     src/Main.cpp
@@ -44,6 +52,7 @@ target_compile_definitions(FDgPE PRIVATE
     TRACKTION_ENABLE_TIMESTRETCH_SOUNDTOUCH=1)
 
 target_link_libraries(FDgPE PRIVATE
+    FDgPE_assets
     tracktion::tracktion_core
     tracktion::tracktion_engine
     tracktion::tracktion_graph

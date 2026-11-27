@@ -1,6 +1,7 @@
 #pragma once
 
 #include <juce_gui_basics/juce_gui_basics.h>
+#include <BinaryData.h>
 
 #include "MainComponent.h"
 #include "Palette.h"
@@ -20,6 +21,12 @@ public:
         setResizable (true, true);
         setResizeLimits (1040, 600, 4096, 4096);
         centreWithSize (getWidth(), getHeight());
+
+        const auto icon = juce::ImageCache::getFromMemory (fdgpe_assets::icon512_png,
+                                                           (int) fdgpe_assets::icon512_pngSize);
+        if (icon.isValid())
+            setIcon (icon);
+
         setVisible (true);
     }
 
