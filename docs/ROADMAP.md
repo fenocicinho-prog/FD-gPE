@@ -160,6 +160,7 @@ fenêtre est maintenant créée avec `create()` puis rendue visible : elle est n
 - [ ] **M3.7** Fenêtres de plugins flottantes au style de l'application (sombre plat, accent vert clair).
 - [ ] **M3.8** Groupes de pistes (colonne GROUPS) et routage visuel selon la maquette.
 - [ ] **M3.9** Envois (SENDS) et bus, intégrés au mixeur et aux pistes.
+- [ ] **M3.10** Routage des entrées et sorties : choisir le périphérique audio et le canal par piste, et dans les réglages globaux. *Partiel : sortie device par piste dans MixerDock validée 27/11. Reste : entrée par piste, sélection de canal entrée/sortie.*
 
 ## M4 : installation en un clic (en local)
 

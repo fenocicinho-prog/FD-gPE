@@ -244,6 +244,12 @@ public:
     te::AuxSendPlugin* setAuxSendBus (te::AudioTrack&, int oldBus, int newBus);
     te::AuxReturnPlugin* ensureAuxReturn (int bus);
 
+    // Routage sortie par piste (M3.6).
+    juce::StringArray getOutputDeviceNames() const;
+    juce::StringArray getOutputDeviceIds() const;
+    juce::String getTrackOutputDeviceId (te::AudioTrack&) const;
+    void setTrackOutputDeviceId (te::AudioTrack&, const juce::String& deviceId);
+
     // Apparence : préférences enregistrées hors du projet.
     void saveTheme (bool dark, const juce::Colour& accent);
     std::pair<bool, juce::Colour> loadTheme() const;

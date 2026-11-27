@@ -1617,6 +1617,57 @@ te::AuxReturnPlugin* EngineHost::ensureAuxReturn (int bus)
     return nullptr;
 }
 
+juce::StringArray EngineHost::getOutputDeviceNames() const
+{
+    juce::StringArray names;
+    names.add (tr ("Sortie par défaut"));
+
+    auto& dm = engine.getDeviceManager();
+
+    for (int i = 0; i < dm.getNumOutputDevices(); ++i)
+    {
+        if (auto* out = dm.getOutputDeviceAt (i))
+            if (out->isEnabled() && ! out->isMidi())
+                names.add (out->getAliasOrName());
+    }
+
+    return names;
+}
+
+juce::StringArray EngineHost::getOutputDeviceIds() const
+{
+    juce::StringArray ids;
+    ids.add (te::DeviceManager::getDefaultAudioOutDeviceName (false));
+
+    auto& dm = engine.getDeviceManager();
+
+    for (int i = 0; i < dm.getNumOutputDevices(); ++i)
+    {
+        if (auto* out = dm.getOutputDeviceAt (i))
+            if (out->isEnabled() && ! out->isMidi())
+                ids.add (out->getDeviceID());
+    }
+
+    return ids;
+}
+
+juce::String EngineHost::getTrackOutputDeviceId (te::AudioTrack& track) const
+{
+    return track.getOutput().getOutputDeviceID();
+}
+
+void EngineHost::setTrackOutputDeviceId (te::AudioTrack& track, const juce::String& deviceId)
+{
+    if (deviceId == te::DeviceManager::getDefaultAudioOutDeviceName (false)
+        || deviceId.isEmpty())
+    {
+        track.getOutput().setOutputToDefaultDevice (false);
+        return;
+    }
+
+    track.getOutput().setOutputToDeviceID (deviceId);
+}
+
 void EngineHost::saveTheme (bool dark, const juce::Colour& accent)
 {
     auto& props = engine.getPropertyStorage().getPropertiesFile();

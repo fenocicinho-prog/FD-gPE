@@ -28,6 +28,16 @@ public:
         nameLabel.setJustificationType (juce::Justification::centred);
         nameLabel.setInterceptsMouseClicks (false, false);
 
+        outputSelector.setTooltip (tr ("Sortie audio"));
+        outputSelector.onChange = [this]
+        {
+            const auto ids = host.getOutputDeviceIds();
+            const int index = outputSelector.getSelectedId() - 1;
+
+            if (juce::isPositiveAndBelow (index, ids.size()))
+                host.setTrackOutputDeviceId (track, ids[index]);
+        };
+
         volume.setSliderStyle (juce::Slider::LinearVertical);
         volume.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
         volume.setRange (0.0, 1.0, 0.0);
@@ -108,7 +118,7 @@ public:
 
         pluginStrip.setVertical (true);
 
-        for (juce::Component* c : { (juce::Component*) &nameLabel, (juce::Component*) &volume, (juce::Component*) &pan,
+        for (juce::Component* c : { (juce::Component*) &nameLabel, (juce::Component*) &outputSelector, (juce::Component*) &volume, (juce::Component*) &pan,
                                     (juce::Component*) &sendBus, (juce::Component*) &sendSlider, (juce::Component*) &muteButton, (juce::Component*) &soloButton,
                                     (juce::Component*) &pluginStrip })
             addAndMakeVisible (c);
@@ -129,6 +139,36 @@ public:
     {
         muteButton.setToggleState (track.isMuted (false), juce::dontSendNotification);
         soloButton.setToggleState (track.isSolo (false), juce::dontSendNotification);
+
+        if (! outputSelector.isPopupActive())
+        {
+            const auto names = host.getOutputDeviceNames();
+            const auto ids = host.getOutputDeviceIds();
+            bool changed = outputSelector.getNumItems() != names.size();
+
+            for (int i = 0; ! changed && i < names.size(); ++i)
+                changed = outputSelector.getItemText (i) != names[i];
+
+            if (changed)
+            {
+                outputSelector.clear (juce::dontSendNotification);
+                for (int i = 0; i < names.size(); ++i)
+                    outputSelector.addItem (names[i], i + 1);
+            }
+
+            const auto currentId = host.getTrackOutputDeviceId (track);
+            int selectedId = 1;
+
+            for (int i = 0; i < ids.size(); ++i)
+                if (ids[i] == currentId)
+                {
+                    selectedId = i + 1;
+                    break;
+                }
+
+            if (outputSelector.getSelectedId() != selectedId)
+                outputSelector.setSelectedId (selectedId, juce::dontSendNotification);
+        }
 
         if (auto* vp = track.getVolumePlugin())
         {
@@ -234,17 +274,18 @@ public:
         const int h = getHeight();
         const int half = (width - 16) / 2;
 
-        nameLabel.setBounds (2, 6, width - 4, 16);
-        pluginStrip.setBounds (6, 38, width - 12, 44);
-        sendBus.setBounds (6, 84, width - 12, 14);
-        sendSlider.setBounds (6, 100, width - 12, 14);
-        pan.setBounds (6, 116, width - 12, 16);
+        nameLabel.setBounds (2, 4, width - 4, 13);
+        outputSelector.setBounds (6, 18, width - 12, 14);
+        pluginStrip.setBounds (6, 34, width - 12, 44);
+        sendBus.setBounds (6, 80, width - 12, 14);
+        sendSlider.setBounds (6, 96, width - 12, 14);
+        pan.setBounds (6, 112, width - 12, 16);
 
         muteButton.setBounds (6, h - 28, half, 22);
         soloButton.setBounds (6 + half + 4, h - 28, half, 22);
 
         // Fader long : toute la hauteur restante, pour un réglage fin du volume.
-        const int faderTop = 140;
+        const int faderTop = 136;
         const int faderBottom = h - 36;
 
         meterBounds = { 12, faderTop + 4, 8, faderBottom - faderTop - 8 };
@@ -284,6 +325,7 @@ private:
     MixerDock& dock;
     PluginStrip pluginStrip;
     juce::Label nameLabel;
+    juce::ComboBox outputSelector;
     juce::ComboBox sendBus;
     juce::Slider volume, pan, sendSlider;
     juce::TextButton muteButton { "M" }, soloButton { "S" };
