@@ -48,6 +48,34 @@ public:
                 vp->setPan ((float) pan.getValue());
         };
 
+        for (int bus = 0; bus < 4; ++bus)
+            sendBus.addItem (tr ("Bus ") + juce::String (bus + 1), bus + 1);
+        sendBus.setSelectedId (1, juce::dontSendNotification);
+        sendBus.setTooltip (tr ("Bus d'envoi"));
+        sendBus.onChange = [this]
+        {
+            const int newBus = juce::jlimit (0, 3, sendBus.getSelectedId() - 1);
+
+            if (newBus == currentBus)
+                return;
+
+            const auto auxCountBefore = host.getAuxReturnTracks().size();
+            host.setAuxSendBus (track, currentBus, newBus);
+            currentBus = newBus;
+            sendSlider.setTooltip (tr ("Envoi Bus ") + juce::String (currentBus + 1));
+            refresh();
+
+            if (host.getAuxReturnTracks().size() != auxCountBefore)
+            {
+                juce::Component::SafePointer<MixerDock> safeDock (&dock);
+                juce::MessageManager::callAsync ([safeDock]
+                {
+                    if (safeDock != nullptr)
+                        safeDock->rebuild();
+                });
+            }
+        };
+
         sendSlider.setSliderStyle (juce::Slider::LinearHorizontal);
         sendSlider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
         sendSlider.setRange (-60.0, 6.0, 0.1);
@@ -57,7 +85,7 @@ public:
         {
             const auto auxCountBefore = host.getAuxReturnTracks().size();
 
-            if (auto* send = host.getOrCreateAuxSend (track, 0))
+            if (auto* send = host.getOrCreateAuxSend (track, currentBus))
             {
                 const float db = (float) sendSlider.getValue();
                 send->setMute (db <= -59.9f);
@@ -81,7 +109,7 @@ public:
         pluginStrip.setVertical (true);
 
         for (juce::Component* c : { (juce::Component*) &nameLabel, (juce::Component*) &volume, (juce::Component*) &pan,
-                                    (juce::Component*) &sendSlider, (juce::Component*) &muteButton, (juce::Component*) &soloButton,
+                                    (juce::Component*) &sendBus, (juce::Component*) &sendSlider, (juce::Component*) &muteButton, (juce::Component*) &soloButton,
                                     (juce::Component*) &pluginStrip })
             addAndMakeVisible (c);
 
@@ -111,9 +139,30 @@ public:
                 pan.setValue (vp->getPan(), juce::dontSendNotification);
         }
 
-        if (! sendSlider.isMouseButtonDown())
+        if (! sendSlider.isMouseButtonDown() && ! sendBus.isPopupActive())
         {
-            if (auto* send = host.getAuxSend (track, 0))
+            int detectedBus = currentBus;
+
+            if (host.getAuxSend (track, currentBus) == nullptr)
+            {
+                for (int bus = 0; bus < 4; ++bus)
+                {
+                    if (host.getAuxSend (track, bus) != nullptr)
+                    {
+                        detectedBus = bus;
+                        break;
+                    }
+                }
+            }
+
+            if (detectedBus != currentBus)
+            {
+                currentBus = detectedBus;
+                sendBus.setSelectedId (currentBus + 1, juce::dontSendNotification);
+                sendSlider.setTooltip (tr ("Envoi Bus ") + juce::String (currentBus + 1));
+            }
+
+            if (auto* send = host.getAuxSend (track, currentBus))
                 sendSlider.setValue (send->isMute() ? -60.0 : (double) send->getGainDb(), juce::dontSendNotification);
             else
                 sendSlider.setValue (-60.0, juce::dontSendNotification);
@@ -182,15 +231,16 @@ public:
         const int half = (width - 16) / 2;
 
         nameLabel.setBounds (2, 6, width - 4, 16);
-        pluginStrip.setBounds (6, 38, width - 12, 60);
-        sendSlider.setBounds (6, 100, width - 12, 16);
-        pan.setBounds (6, 118, width - 12, 16);
+        pluginStrip.setBounds (6, 38, width - 12, 44);
+        sendBus.setBounds (6, 84, width - 12, 14);
+        sendSlider.setBounds (6, 100, width - 12, 14);
+        pan.setBounds (6, 116, width - 12, 16);
 
         muteButton.setBounds (6, h - 28, half, 22);
         soloButton.setBounds (6 + half + 4, h - 28, half, 22);
 
         // Fader long : toute la hauteur restante, pour un réglage fin du volume.
-        const int faderTop = 142;
+        const int faderTop = 140;
         const int faderBottom = h - 36;
 
         meterBounds = { 12, faderTop + 4, 8, faderBottom - faderTop - 8 };
@@ -203,8 +253,10 @@ private:
     MixerDock& dock;
     PluginStrip pluginStrip;
     juce::Label nameLabel;
+    juce::ComboBox sendBus;
     juce::Slider volume, pan, sendSlider;
     juce::TextButton muteButton { "M" }, soloButton { "S" };
+    int currentBus = 0;
     juce::Rectangle<int> meterBounds;
     te::LevelMeasurer::Client meterClient;
     float meterLevel = 0.0f;

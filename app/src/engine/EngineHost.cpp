@@ -1502,6 +1502,26 @@ void EngineHost::removeAuxSend (te::AudioTrack& track, int bus)
         send->removeFromParent();
 }
 
+te::AuxSendPlugin* EngineHost::setAuxSendBus (te::AudioTrack& track, int oldBus, int newBus)
+{
+    if (oldBus == newBus)
+        return getAuxSend (track, oldBus);
+
+    ensureAuxBus (newBus, tr ("Bus ") + juce::String (newBus + 1));
+    ensureAuxReturn (newBus);
+
+    if (auto* existing = track.getAuxSendPlugin (newBus, te::AuxPosition::byBus))
+        return existing;
+
+    if (auto* send = track.getAuxSendPlugin (oldBus, te::AuxPosition::byBus))
+    {
+        send->busNumber = newBus;
+        return send;
+    }
+
+    return nullptr;
+}
+
 te::AuxReturnPlugin* EngineHost::ensureAuxReturn (int bus)
 {
     // Migration douce : retire un ancien retour Bus placé sur le master.
